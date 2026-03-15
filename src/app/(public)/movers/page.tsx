@@ -17,7 +17,7 @@ export default async function MoversPage() {
       active: true,
       closed: false,
       limit: 100,
-      order: "volume_24hr",
+      order: "volume24hr",
       ascending: false,
     });
   } catch {

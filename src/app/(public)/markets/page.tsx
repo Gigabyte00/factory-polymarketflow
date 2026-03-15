@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const sortOptions = [
-  { key: "volume_24hr", label: "Trending", icon: TrendingUp },
+  { key: "volume24hr", label: "Trending", icon: TrendingUp },
   { key: "volume", label: "Volume", icon: BarChart3 },
   { key: "liquidity", label: "Liquidity", icon: Droplets },
   { key: "end_date", label: "Ending Soon", icon: Clock },
@@ -22,7 +22,7 @@ export default async function MarketsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const sort = (params.sort as string) || "volume_24hr";
+  const sort = (params.sort as string) || "volume24hr";
   const category = params.category as string | undefined;
 
   let events: Awaited<ReturnType<typeof fetchEvents>> = [];
