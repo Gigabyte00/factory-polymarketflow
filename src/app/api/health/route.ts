@@ -99,6 +99,41 @@ export async function GET() {
     checks.data_counts = { status: "error", details: err.message };
   }
 
+  // 5. Recent sync history
+  try {
+    const db2 = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { db: { schema: "pmflow" } }
+    );
+    const { data: recentSyncs } = await db2
+      .from("sync_log")
+      .select("id, started_at, completed_at, duration_ms, status, events_count, markets_count, error_message")
+      .order("started_at", { ascending: false })
+      .limit(5);
+
+    const lastSync = recentSyncs?.[0];
+    const recentErrors = recentSyncs?.filter((s: any) => s.status === "error").length || 0;
+
+    checks.sync_history = {
+      status: recentErrors > 2 ? "error" : "ok",
+      details: JSON.stringify({
+        last_sync: lastSync ? {
+          id: lastSync.id,
+          at: lastSync.started_at,
+          duration_ms: lastSync.duration_ms,
+          status: lastSync.status,
+          events: lastSync.events_count,
+          markets: lastSync.markets_count,
+        } : null,
+        recent_errors: recentErrors,
+        total_recent: recentSyncs?.length || 0,
+      }),
+    };
+  } catch (err: any) {
+    checks.sync_history = { status: "error", details: err.message };
+  }
+
   // Overall status
   const allOk = Object.values(checks).every((c) => c.status === "ok");
 

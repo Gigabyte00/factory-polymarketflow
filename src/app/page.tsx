@@ -152,9 +152,9 @@ export default function HomePage() {
                 "Everything in Pro",
                 "AI Market Briefings",
                 "Custom Alert Rules",
-                "API Access",
-                "Data Export (CSV/JSON)",
+                "Cross-Market Correlation",
                 "Priority Support",
+                "Early access to new features",
               ]}
               cta="Go Elite"
               href="/pricing"

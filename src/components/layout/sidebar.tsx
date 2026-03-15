@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   LineChart,
   Settings,
-  Shield,
   TrendingUp,
   Trophy,
   Users,
@@ -52,7 +51,6 @@ const sections = [
     badge: "ELITE",
     links: [
       { href: "/briefings", label: "AI Briefings", icon: Zap },
-      { href: "/api-keys", label: "API Access", icon: Shield },
     ],
   },
   {

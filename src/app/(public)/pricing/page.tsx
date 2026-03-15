@@ -8,8 +8,6 @@ import {
   Wallet,
   BarChart3,
   TrendingUp,
-  Code,
-  Download,
   MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
@@ -73,8 +71,6 @@ const tiers = [
       { text: "AI Market Briefings (daily)", included: true },
       { text: "Custom Alert Rules (multi-condition)", included: true },
       { text: "Cross-Market Correlation", included: true },
-      { text: "REST API Access", included: true },
-      { text: "Data Export (CSV/JSON)", included: true },
       { text: "Priority Support", included: true },
       { text: "Early access to new features", included: true },
     ],
@@ -263,8 +259,6 @@ const comparisonRows = [
   { feature: "Orderbook Depth", icon: BarChart3, free: false, pro: true, elite: true },
   { feature: "AI Briefings", icon: Brain, free: false, pro: false, elite: true },
   { feature: "Custom Alerts", icon: Shield, free: false, pro: false, elite: true },
-  { feature: "API Access", icon: Code, free: false, pro: false, elite: true },
-  { feature: "Data Export", icon: Download, free: false, pro: false, elite: true },
   { feature: "Priority Support", icon: MessageSquare, free: false, pro: false, elite: true },
 ];
 

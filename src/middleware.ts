@@ -9,7 +9,7 @@ const PROTECTED_ROUTES = [
   "/portfolio",
   "/briefings",
   "/settings",
-  "/api-keys",
+
 ];
 
 export async function middleware(request: NextRequest) {

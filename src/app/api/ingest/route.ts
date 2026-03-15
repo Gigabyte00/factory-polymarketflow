@@ -40,6 +40,20 @@ export async function POST(request: Request) {
 
   const tasks = body.tasks || ["events", "prices", "leaderboard", "holders"];
   const results: Record<string, { success: boolean; count?: number; error?: string }> = {};
+  const syncStarted = new Date();
+
+  // Create sync log entry
+  const { data: syncLog } = await pmflow
+    .from("sync_log")
+    .insert({
+      started_at: syncStarted.toISOString(),
+      status: "running",
+      tasks: tasks,
+      triggered_by: request.headers.get("x-triggered-by") || "api",
+    })
+    .select("id")
+    .single();
+  const syncLogId = syncLog?.id;
 
   // ============ TASK 1: Sync Events + Markets ============
   if (tasks.includes("events")) {
@@ -340,9 +354,39 @@ export async function POST(request: Request) {
     }
   }
 
+  // Finalize sync log
+  const syncCompleted = new Date();
+  const durationMs = syncCompleted.getTime() - syncStarted.getTime();
+  const hasErrors = Object.values(results).some((r) => !r.success);
+
+  if (syncLogId) {
+    await pmflow
+      .from("sync_log")
+      .update({
+        completed_at: syncCompleted.toISOString(),
+        duration_ms: durationMs,
+        status: hasErrors ? "error" : "complete",
+        results,
+        events_count: results.events?.count || 0,
+        markets_count: results.markets?.count || 0,
+        leaderboard_count: results.leaderboard?.count || 0,
+        holders_count: results.holders?.count || 0,
+        prices_count: results.prices?.count || 0,
+        error_message: hasErrors
+          ? Object.entries(results)
+              .filter(([, r]) => !r.success)
+              .map(([k, r]) => `${k}: ${r.error}`)
+              .join("; ")
+          : null,
+      })
+      .eq("id", syncLogId);
+  }
+
   return NextResponse.json({
-    status: "complete",
-    timestamp: new Date().toISOString(),
+    status: hasErrors ? "partial" : "complete",
+    timestamp: syncCompleted.toISOString(),
+    duration_ms: durationMs,
+    sync_log_id: syncLogId,
     results,
   });
 }
