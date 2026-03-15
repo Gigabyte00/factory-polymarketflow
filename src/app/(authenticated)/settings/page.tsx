@@ -1,20 +1,31 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState, useEffect, Suspense } from "react";
 import { Settings, Save, LogOut, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 flex items-center justify-center min-h-[50vh]"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+function SettingsContent() {
+  // Dynamically import client to avoid build-time SSR issues
+  const [supabase, setSupabase] = useState<any>(null);
+  useEffect(() => {
+    import("@/lib/supabase/client").then(mod => setSupabase(mod.createClient()));
+  }, []);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [wallet, setWallet] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
-
   useEffect(() => {
+    if (!supabase) return;
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/auth"); return; }
@@ -29,7 +40,7 @@ export default function SettingsPage() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [supabase]);
 
   async function handleSave() {
     setSaving(true);
