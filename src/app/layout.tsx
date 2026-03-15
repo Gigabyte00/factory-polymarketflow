@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Footer } from "@/components/layout/footer";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { OrganizationSchema, WebSiteSchema, SoftwareAppSchema } from "@/components/structured-data";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -21,6 +22,7 @@ const jetbrainsMono = JetBrains_Mono({
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://polymarketflow.com"),
   title: {
     default: "PolymarketFlow - Prediction Market Intelligence",
     template: "%s | PolymarketFlow",
@@ -38,6 +40,9 @@ export const metadata: Metadata = {
     "polymarket whales",
     "polymarket alerts",
   ],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "PolymarketFlow - Prediction Market Intelligence",
     description:
@@ -45,12 +50,21 @@ export const metadata: Metadata = {
     url: "https://polymarketflow.com",
     siteName: "PolymarketFlow",
     type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "PolymarketFlow - Prediction Market Intelligence",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "PolymarketFlow - Prediction Market Intelligence",
     description:
       "Real-time analytics, whale tracking, and smart alerts for Polymarket traders.",
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
@@ -92,6 +106,9 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen flex flex-col`}
       >
+        <OrganizationSchema />
+        <WebSiteSchema />
+        <SoftwareAppSchema />
         <Navbar />
         <div className="flex flex-1">
           <Sidebar />

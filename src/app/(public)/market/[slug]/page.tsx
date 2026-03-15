@@ -11,7 +11,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const event = await getEventBySlug(slug);
   if (!event) return { title: "Market Not Found" };
-  return { title: event.title || "Market", description: event.description || `Prediction market: ${event.title}` };
+
+  const title = event.title || "Market";
+  const description = event.description
+    ? event.description.substring(0, 160)
+    : `Track ${title} on Polymarket. Real-time price data, whale positions, volume analytics, and price alerts.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/market/${slug}` },
+    openGraph: {
+      title: `${title} | PolymarketFlow`,
+      description,
+      url: `https://polymarketflow.com/market/${slug}`,
+      images: event.image ? [{ url: event.image, width: 400, height: 400 }] : undefined,
+    },
+    twitter: {
+      card: "summary",
+      title: `${title} | PolymarketFlow`,
+      description,
+    },
+  };
 }
 
 export default async function MarketDetailPage({ params }: Props) {
