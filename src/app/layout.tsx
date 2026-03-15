@@ -1,0 +1,72 @@
+import type { Metadata } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import "./globals.css";
+import { Navbar } from "@/components/layout/navbar";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Footer } from "@/components/layout/footer";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+});
+
+export const metadata: Metadata = {
+  title: {
+    default: "PolymarketFlow - Prediction Market Intelligence",
+    template: "%s | PolymarketFlow",
+  },
+  description:
+    "Real-time analytics, whale tracking, and smart alerts for Polymarket traders. Track markets, follow smart money, and get notified when opportunities arise.",
+  keywords: [
+    "polymarket",
+    "prediction market",
+    "analytics",
+    "whale tracker",
+    "price alerts",
+    "trading intelligence",
+  ],
+  openGraph: {
+    title: "PolymarketFlow - Prediction Market Intelligence",
+    description:
+      "Real-time analytics, whale tracking, and smart alerts for Polymarket traders.",
+    url: "https://polymarketflow.com",
+    siteName: "PolymarketFlow",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PolymarketFlow - Prediction Market Intelligence",
+    description:
+      "Real-time analytics, whale tracking, and smart alerts for Polymarket traders.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className="dark">
+      <body
+        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen flex flex-col`}
+      >
+        <Navbar />
+        <div className="flex flex-1">
+          <Sidebar />
+          <main className="flex-1 overflow-auto">{children}</main>
+        </div>
+        <Footer />
+      </body>
+    </html>
+  );
+}
