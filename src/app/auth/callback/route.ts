@@ -46,14 +46,18 @@ export async function GET(request: Request) {
           process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
+        // Generate referral code from user ID
+        const referralCode = user.id.split("-")[0] + user.id.split("-")[1];
+
         await serviceClient.schema("pmflow").from("users").upsert(
           {
             id: user.id,
             email: user.email!,
             name: user.user_metadata?.full_name || null,
             tier: "free",
+            referral_code: referralCode,
           },
-          { onConflict: "id" }
+          { onConflict: "id", ignoreDuplicates: true }
         );
       }
 

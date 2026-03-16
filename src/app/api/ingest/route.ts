@@ -498,9 +498,19 @@ export async function POST(request: Request) {
           const recencyScore = Math.max(20 - daysSinceActive, 0);
           const score = Math.round(volScore + mktScore + pnlScore + recencyScore);
 
+          // Determine strategy label
+          let strategyLabel = "Diversified";
+          const mktCount = whale.markets_traded || 0;
+          const vol = whale.total_volume || 0;
+          if (whale.total_pnl > 0 && score > 40) strategyLabel = "Consistent Winner";
+          else if (vol > maxVol * 0.3) strategyLabel = "Whale";
+          else if (mktCount >= 15) strategyLabel = "Active Trader";
+          else if (mktCount <= 2) strategyLabel = "Focused";
+          else if (mktCount >= 5 && mktCount <= 10) strategyLabel = "Selective";
+
           await pmflow
             .from("whale_wallets")
-            .update({ smart_money_score: score })
+            .update({ smart_money_score: score, strategy_label: strategyLabel, consistency_score: Math.min(score + 10, 100) })
             .eq("wallet_address", whale.wallet_address);
         }
       }

@@ -9,6 +9,7 @@ const PROTECTED_ROUTES = [
   "/portfolio",
   "/briefings",
   "/settings",
+  "/watchlist",
 
 ];
 

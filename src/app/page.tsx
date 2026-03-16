@@ -11,9 +11,15 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ActivityFeed } from "@/components/feed/activity-feed";
+import { SentimentGauge } from "@/components/feed/sentiment-gauge";
 
 function ActivityFeedWrapper() {
-  return <ActivityFeed />;
+  return (
+    <div className="grid lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2"><ActivityFeed /></div>
+      <div><SentimentGauge /></div>
+    </div>
+  );
 }
 
 export default function HomePage() {

@@ -14,6 +14,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Check if this is a weekly digest
+  let isWeekly = false;
+  try {
+    const body = await request.clone().json();
+    isWeekly = body.type === "weekly";
+  } catch {}
+
   const db = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,

@@ -3,14 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Activity,
   BarChart3,
   Bell,
   BookOpen,
   CreditCard,
+  Filter,
   Globe,
   LayoutDashboard,
   LineChart,
   Settings,
+  Star,
   TrendingUp,
   Trophy,
   Users,
@@ -24,6 +27,8 @@ const sections = [
     title: "Explore",
     links: [
       { href: "/markets", label: "All Markets", icon: LayoutDashboard },
+      { href: "/flow", label: "Flow", icon: Activity },
+      { href: "/screener", label: "Screener", icon: Filter },
       { href: "/movers", label: "Market Movers", icon: TrendingUp },
       { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
     ],
@@ -41,8 +46,10 @@ const sections = [
     title: "Pro",
     badge: "PRO",
     links: [
+      { href: "/flow", label: "Flow Feed", icon: Activity },
       { href: "/whales", label: "Whale Tracker", icon: Users },
       { href: "/alerts", label: "Price Alerts", icon: Bell },
+      { href: "/watchlist", label: "Watchlist", icon: Star },
       { href: "/portfolio", label: "Portfolio", icon: Wallet },
       { href: "/briefings", label: "AI Briefings", icon: Zap },
     ],
