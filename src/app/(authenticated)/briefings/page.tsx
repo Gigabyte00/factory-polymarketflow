@@ -14,16 +14,16 @@ export default async function BriefingsPage() {
   if (!user) redirect("/auth");
 
   const profile = await getUserProfile(user.id);
-  const isElite = profile?.tier === "elite";
+  const isPro = profile?.tier === "pro";
 
-  if (!isElite) {
+  if (!isPro) {
     return (
       <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
         <div className="terminal-card p-12 text-center max-w-lg mx-auto mt-12">
           <Brain className="h-12 w-12 text-warning mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">AI Market Briefings</h1>
           <p className="text-muted-foreground mb-6">Claude-powered daily intelligence reports. What moved, why, and what to watch next.</p>
-          <Link href="/pricing" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-warning text-white font-semibold hover:bg-warning/90 transition-colors">Upgrade to Elite</Link>
+          <Link href="/pricing" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors">Upgrade to Pro</Link>
         </div>
       </div>
     );

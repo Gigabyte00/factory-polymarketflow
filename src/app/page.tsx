@@ -115,7 +115,7 @@ export default function HomePage() {
             Start free. Upgrade when you need more power.
           </p>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
             <PricingCard
               tier="Free"
               price="$0"
@@ -130,34 +130,19 @@ export default function HomePage() {
             />
             <PricingCard
               tier="Pro"
-              price="$19"
+              price="$199"
               period="/mo"
               features={[
                 "Everything in Free",
                 "Whale Tracker",
-                "Price Alerts (Email + Slack)",
-                "Volume Spike Detection",
+                "Price Alerts",
+                "AI Market Briefings",
                 "Portfolio Tracker",
-                "Orderbook Depth",
+                "Priority Support",
               ]}
-              cta="Start Pro Trial"
+              cta="Start Pro"
               href="/pricing"
               highlighted
-            />
-            <PricingCard
-              tier="Elite"
-              price="$49"
-              period="/mo"
-              features={[
-                "Everything in Pro",
-                "AI Market Briefings",
-                "Custom Alert Rules",
-                "Cross-Market Correlation",
-                "Priority Support",
-                "Early access to new features",
-              ]}
-              cta="Go Elite"
-              href="/pricing"
             />
           </div>
         </div>

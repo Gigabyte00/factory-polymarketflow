@@ -42,8 +42,7 @@ export default async function DashboardPage() {
     .single();
 
   const tier = profile?.tier || "free";
-  const isPro = tier === "pro" || tier === "elite";
-  const isElite = tier === "elite";
+  const isPro = tier === "pro";
 
   return (
     <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
@@ -60,24 +59,20 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3">
           <div
             className={`px-3 py-1 rounded-full text-sm font-bold ${
-              isElite
-                ? "bg-warning/20 text-warning"
-                : isPro
-                  ? "bg-primary/20 text-primary"
-                  : "bg-muted text-muted-foreground"
+              isPro
+                ? "bg-primary/20 text-primary"
+                : "bg-muted text-muted-foreground"
             }`}
           >
             {tier.toUpperCase()}
           </div>
           <span className="text-sm text-muted-foreground">
-            {isElite
+            {isPro
               ? "Full access to all features"
-              : isPro
-                ? "Whale tracking, alerts, and more"
-                : "Upgrade to unlock premium features"}
+              : "Upgrade to unlock premium features"}
           </span>
         </div>
-        {!isElite && (
+        {!isPro && (
           <Link
             href="/pricing"
             className="flex items-center gap-1 text-sm text-primary hover:underline"
@@ -133,8 +128,8 @@ export default async function DashboardPage() {
           title="AI Briefings"
           description="Daily market intelligence reports"
           href="/briefings"
-          available={isElite}
-          tier="ELITE"
+          available={isPro}
+           tier="PRO"
         />
       </div>
 

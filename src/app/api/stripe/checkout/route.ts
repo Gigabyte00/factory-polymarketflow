@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { getStripe, PRICE_IDS, type PlanType } from "@/lib/stripe/config";
+import { getStripe, PRICE_IDS, type BillingInterval } from "@/lib/stripe/config";
 
 export async function POST(request: Request) {
-  // Verify auth
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,33 +21,35 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const plan = body.plan as PlanType;
+  const billing = (body.billing as BillingInterval) || "monthly";
 
-  if (!plan || !PRICE_IDS[plan]) {
-    return NextResponse.json({ error: "Invalid plan. Use 'pro' or 'elite'." }, { status: 400 });
+  if (!["monthly", "annual"].includes(billing)) {
+    return NextResponse.json({ error: "Invalid billing interval. Use 'monthly' or 'annual'." }, { status: 400 });
+  }
+
+  const priceId = PRICE_IDS[billing];
+  if (!priceId) {
+    return NextResponse.json({ error: "Price not configured for this interval." }, { status: 500 });
   }
 
   try {
     const session = await getStripe().checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
-      line_items: [
-        {
-          price: PRICE_IDS[plan],
-          quantity: 1,
-        },
-      ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?checkout=success&plan=${plan}`,
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?checkout=success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?checkout=cancelled`,
       client_reference_id: user.id,
       customer_email: user.email,
       metadata: {
-        plan,
+        plan: "pro",
+        billing,
         user_id: user.id,
       },
       subscription_data: {
         metadata: {
-          plan,
+          plan: "pro",
+          billing,
           user_id: user.id,
         },
       },

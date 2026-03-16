@@ -44,12 +44,6 @@ const sections = [
       { href: "/whales", label: "Whale Tracker", icon: Users },
       { href: "/alerts", label: "Price Alerts", icon: Bell },
       { href: "/portfolio", label: "Portfolio", icon: Wallet },
-    ],
-  },
-  {
-    title: "Elite",
-    badge: "ELITE",
-    links: [
       { href: "/briefings", label: "AI Briefings", icon: Zap },
     ],
   },

@@ -9,6 +9,32 @@ const DATA_BASE = "https://data-api.polymarket.com";
 const INGEST_API_KEY = process.env.INGEST_API_KEY || "pmflow-ingest-secret";
 
 /**
+ * Infer category from title/description when Polymarket API returns null.
+ */
+function inferCategory(title: string | null, description: string | null, tags: any[]): string | null {
+  const text = `${title || ""} ${description || ""}`.toLowerCase();
+  const tagLabels = (tags || []).map((t: any) => (t.label || "").toLowerCase()).join(" ");
+  const all = `${text} ${tagLabels}`;
+
+  // Politics
+  if (/trump|biden|election|president|congress|senate|governor|democrat|republican|political|impeach|legislation|white house|cabinet|nato|parliament|vote|ballot|primary|gop|dnc|rnc|kamala|desantis|newsom|potus/.test(all)) return "Politics";
+  // Crypto
+  if (/bitcoin|btc|ethereum|eth|crypto|token|blockchain|solana|defi|nft|coinbase|binance|altcoin|stablecoin|memecoin|doge|xrp|cardano|polygon|avalanche|arbitrum|optimism|base chain|layer 2/.test(all)) return "Crypto";
+  // Sports
+  if (/nba|nfl|mlb|nhl|soccer|football|basketball|baseball|hockey|tennis|golf|ufc|mma|boxing|f1|formula|olympics|world cup|champions league|premier league|la liga|serie a|bundesliga|ncaa|super bowl|playoff|championship|mvp|slam|grand prix/.test(all)) return "Sports";
+  // Science & Tech
+  if (/ai |artificial intelligence|spacex|nasa|mars|moon|launch|rocket|openai|google|apple|microsoft|tesla|elon musk|chip|semiconductor|quantum|gene|crispr|fda approval|clinical trial/.test(all)) return "Science & Tech";
+  // Culture & Entertainment
+  if (/oscar|grammy|emmy|box office|movie|film|album|song|celebrity|reality tv|netflix|disney|streaming|tiktok|youtube|instagram|podcast|influencer|concert|festival|award show/.test(all)) return "Culture";
+  // Economics & Finance
+  if (/fed |federal reserve|interest rate|inflation|gdp|recession|stock|s&p|nasdaq|dow jones|treasury|unemployment|jobs report|cpi|fomc|tariff|trade war|ipo/.test(all)) return "Economics";
+  // Weather & Climate
+  if (/hurricane|earthquake|temperature|climate|weather|wildfire|flood|drought|el nino|la nina/.test(all)) return "Weather";
+
+  return null;
+}
+
+/**
  * POST /api/ingest
  * 
  * Called hourly by n8n (or cron) to sync Polymarket data into Supabase.
@@ -92,7 +118,7 @@ export async function POST(request: Request) {
         active: e.active ?? true,
         closed: e.closed ?? false,
         featured: e.featured ?? false,
-        category: e.category,
+        category: e.category || inferCategory(e.title, e.description, e.tags),
         subcategory: e.subcategory,
         volume: e.volume || 0,
         volume_24h: e.volume24hr || 0,

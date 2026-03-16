@@ -16,8 +16,8 @@ export function getStripe(): Stripe {
 }
 
 export const PRICE_IDS = {
-  pro: process.env.STRIPE_PRO_PRICE_ID || "",
-  elite: process.env.STRIPE_ELITE_PRICE_ID || "",
+  monthly: process.env.STRIPE_MONTHLY_PRICE_ID || "",
+  annual: process.env.STRIPE_ANNUAL_PRICE_ID || "",
 } as const;
 
-export type PlanType = "pro" | "elite";
+export type BillingInterval = "monthly" | "annual";
