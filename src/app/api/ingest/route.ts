@@ -443,6 +443,104 @@ export async function POST(request: Request) {
     }
   }
 
+  // ============ TASK 5: Compute Smart Money Labels ============
+  if (tasks.includes("smart_money")) {
+    try {
+      // Count markets traded and compute avg position per whale
+      const { data: whaleStats } = await pmflow.rpc("exec_sql", {
+        query: `
+          UPDATE pmflow.whale_wallets w SET
+            markets_traded = sub.market_count,
+            avg_position_size = sub.avg_amount,
+            last_active_at = sub.last_seen
+          FROM (
+            SELECT wallet_address,
+              COUNT(DISTINCT market_id) as market_count,
+              AVG(amount) as avg_amount,
+              MAX(snapshot_at) as last_seen
+            FROM pmflow.top_holders
+            GROUP BY wallet_address
+          ) sub
+          WHERE w.wallet_address = sub.wallet_address
+        `,
+      });
+
+      // Compute smart money score (0-100) based on:
+      // volume (30%), markets traded (30%), pnl (20%), recency (20%)
+      const { data: whales } = await pmflow
+        .from("whale_wallets")
+        .select("wallet_address, total_volume, total_pnl, markets_traded, last_active_at")
+        .gt("markets_traded", 0);
+
+      if (whales && whales.length > 0) {
+        const maxVol = Math.max(...whales.map((w: any) => w.total_volume || 0), 1);
+        const maxMarkets = Math.max(...whales.map((w: any) => w.markets_traded || 0), 1);
+        const maxPnl = Math.max(...whales.map((w: any) => Math.abs(w.total_pnl || 0)), 1);
+        const now = Date.now();
+
+        for (const whale of whales) {
+          const volScore = Math.min(((whale.total_volume || 0) / maxVol) * 30, 30);
+          const mktScore = Math.min(((whale.markets_traded || 0) / maxMarkets) * 30, 30);
+          const pnlScore = whale.total_pnl > 0 ? Math.min((whale.total_pnl / maxPnl) * 20, 20) : 0;
+          const daysSinceActive = whale.last_active_at
+            ? (now - new Date(whale.last_active_at).getTime()) / 86400000
+            : 30;
+          const recencyScore = Math.max(20 - daysSinceActive, 0);
+          const score = Math.round(volScore + mktScore + pnlScore + recencyScore);
+
+          await pmflow
+            .from("whale_wallets")
+            .update({ smart_money_score: score })
+            .eq("wallet_address", whale.wallet_address);
+        }
+      }
+
+      results.smart_money = { success: true, count: whales?.length || 0 };
+    } catch (err: any) {
+      results.smart_money = { success: false, error: err.message };
+    }
+  }
+
+  // ============ TASK 6: Anomaly Detection ============
+  if (tasks.includes("anomaly")) {
+    try {
+      // Detect volume spikes: current 24h vol > 3x 7-day average
+      const { data: markets } = await pmflow
+        .from("markets")
+        .select("id, volume_24h, volume_avg_7d")
+        .eq("active", true)
+        .gt("volume_24h", 0);
+
+      let anomalyCount = 0;
+      if (markets) {
+        for (const m of markets) {
+          const vol24h = m.volume_24h || 0;
+          const avg7d = m.volume_avg_7d || vol24h; // Default to current if no avg
+          const newAvg = avg7d > 0 ? (avg7d * 6 + vol24h) / 7 : vol24h; // Rolling avg
+
+          const spikeMultiplier = avg7d > 0 ? vol24h / avg7d : 1;
+          const isSpike = spikeMultiplier > 3;
+          const anomalyScore = Math.min(Math.round(spikeMultiplier * 10), 100);
+
+          await pmflow
+            .from("markets")
+            .update({
+              volume_avg_7d: newAvg,
+              volume_spike_detected: isSpike,
+              anomaly_score: isSpike ? anomalyScore : 0,
+            })
+            .eq("id", m.id);
+
+          if (isSpike) anomalyCount++;
+        }
+      }
+
+      results.anomaly = { success: true, count: anomalyCount };
+    } catch (err: any) {
+      results.anomaly = { success: false, error: err.message };
+    }
+  }
+
   // Finalize sync log
   const syncCompleted = new Date();
   const durationMs = syncCompleted.getTime() - syncStarted.getTime();
