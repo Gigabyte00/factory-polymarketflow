@@ -148,6 +148,19 @@ export default async function TraderProfilePage({ params }: Props) {
             </div>
           </div>
 
+          <div className="terminal-card p-6">
+            <h3 className="text-sm font-semibold mb-3">Strategy</h3>
+            <div className="space-y-2 text-sm">
+              {whale.strategy_label && <div className="flex justify-between"><span className="text-muted-foreground">Type</span><span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-xs">{whale.strategy_label}</span></div>}
+              {whale.smart_money_score > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Smart Money Score</span><span className="font-mono text-primary">{whale.smart_money_score}/100</span></div>}
+              {whale.consistency_score > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Consistency</span><span className="font-mono">{whale.consistency_score}/100</span></div>}
+              {whale.markets_traded > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Markets traded</span><span className="font-mono">{whale.markets_traded}</span></div>}
+            </div>
+          </div>
+
+          {/* Also Active In — other traders in same markets */}
+          <AlsoActiveIn positions={positions || []} currentAddress={address} />
+
           <div className="terminal-card p-6 text-center">
             <p className="text-xs text-muted-foreground mb-3">Track this trader in real-time</p>
             <Link href="/pricing" className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors">
@@ -155,6 +168,30 @@ export default async function TraderProfilePage({ params }: Props) {
             </Link>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function AlsoActiveIn({ positions, currentAddress }: { positions: any[]; currentAddress: string }) {
+  // Extract unique market IDs from this trader's positions
+  // and show links to other notable traders in those markets
+  if (!positions || positions.length === 0) return null;
+
+  const marketQuestions = positions.slice(0, 3).map((p: any) => ({
+    question: p.markets?.question || "Unknown",
+    slug: p.markets?.slug || "",
+  })).filter((m: any) => m.slug);
+
+  if (marketQuestions.length === 0) return null;
+
+  return (
+    <div className="terminal-card p-6">
+      <h3 className="text-sm font-semibold mb-3">Active Markets</h3>
+      <div className="space-y-1.5">
+        {marketQuestions.map((m: any, i: number) => (
+          <Link key={i} href={`/market/${m.slug}`} className="block text-xs text-muted-foreground hover:text-primary transition-colors truncate">{m.question}</Link>
+        ))}
       </div>
     </div>
   );

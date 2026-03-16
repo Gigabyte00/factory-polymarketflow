@@ -1,5 +1,6 @@
-import { getEventBySlug, getTopHoldersForMarket } from "@/lib/supabase/pmflow";
+import { getEventBySlug, getTopHoldersForMarket, getEvents } from "@/lib/supabase/pmflow";
 import { PriceChart } from "@/components/charts/price-chart";
+import { BreadcrumbSchema, FAQSchema } from "@/components/structured-data";
 
 function PriceChartWrapper({ tokenId }: { tokenId: string }) {
   return <PriceChart tokenId={tokenId} height={280} />;
@@ -174,6 +175,46 @@ export default async function MarketDetailPage({ params }: Props) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Related Markets (internal links for SEO) */}
+      <RelatedMarkets category={event.category} currentSlug={event.slug || ""} />
+
+      {/* Structured Data */}
+      <BreadcrumbSchema items={[
+        { name: "Home", url: "https://polymarketflow.com" },
+        { name: "Markets", url: "https://polymarketflow.com/markets" },
+        ...(event.category ? [{ name: event.category, url: `https://polymarketflow.com/predictions/${event.category.toLowerCase().replace(/ & /g, "-")}` }] : []),
+        { name: event.title || "Market", url: `https://polymarketflow.com/market/${slug}` },
+      ]} />
+      <FAQSchema items={[
+        { question: `What are the current odds for ${event.title}?`, answer: `The market currently prices the primary outcome at ${market ? ((market.outcome_prices?.[0] || 0.5) * 100).toFixed(0) : "50"}%. This reflects the collective probability estimate from all Polymarket traders.` },
+        { question: `How much has been traded on ${event.title}?`, answer: `Total trading volume is ${formatCompact(event.volume || 0)} with ${formatCompact(event.volume_24h || 0)} in the last 24 hours. Liquidity stands at ${formatCompact(event.liquidity || 0)}.` },
+        { question: "Who are the biggest holders in this market?", answer: "PolymarketFlow tracks the top 20 holders for every active market. Upgrade to Pro to see real-time whale positions and get alerts when smart money moves." },
+      ]} />
+    </div>
+  );
+}
+
+async function RelatedMarkets({ category, currentSlug }: { category: string | null; currentSlug: string }) {
+  if (!category) return null;
+  let related: any[] = [];
+  try {
+    related = await getEvents({ category, limit: 6 });
+    related = related.filter((e: any) => e.slug !== currentSlug).slice(0, 4);
+  } catch { return null; }
+  if (related.length === 0) return null;
+
+  return (
+    <div className="mt-6">
+      <h2 className="text-sm font-semibold mb-3">Related {category} Markets</h2>
+      <div className="grid sm:grid-cols-2 gap-3">
+        {related.map((e: any) => (
+          <a key={e.id} href={`/market/${e.slug}`} className="terminal-card p-3 hover:border-primary/30 transition-colors group">
+            <p className="text-xs font-medium line-clamp-2 group-hover:text-primary transition-colors">{e.title}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">{formatCompact(e.volume_24h || 0)} 24h vol</p>
+          </a>
+        ))}
       </div>
     </div>
   );

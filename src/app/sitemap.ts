@@ -15,6 +15,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/screener`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.8 },
     { url: `${baseUrl}/alerts-feed`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.9 },
     { url: `${baseUrl}/scorecard`, lastModified: new Date(), changeFrequency: "daily", priority: 0.7 },
+    { url: `${baseUrl}/tools`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/whale-tracker`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.9 },
     { url: `${baseUrl}/blog`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.7 },
     { url: `${baseUrl}/about`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
     { url: `${baseUrl}/accuracy`, lastModified: new Date(), changeFrequency: "daily", priority: 0.7 },
@@ -39,6 +41,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: "hourly" as const,
     priority: 0.8,
   }));
+
+  // Daily snapshot pages (last 7 days)
+  const dailyPages: MetadataRoute.Sitemap = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    dailyPages.push({
+      url: `${baseUrl}/daily/${dateStr}`,
+      lastModified: d,
+      changeFrequency: i === 0 ? "hourly" as const : "daily" as const,
+      priority: i === 0 ? 0.8 : 0.5,
+    });
+  }
 
   try {
     const db = createClient(
@@ -77,8 +93,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     }));
 
-    return [...staticPages, ...blogPages, ...categoryPages, ...marketPages, ...traderPages];
+    return [...staticPages, ...blogPages, ...categoryPages, ...dailyPages, ...marketPages, ...traderPages];
   } catch {
-    return [...staticPages, ...blogPages, ...categoryPages];
+    return [...staticPages, ...blogPages, ...categoryPages, ...dailyPages];
   }
 }
