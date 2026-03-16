@@ -46,9 +46,10 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Check if the route is protected
+  // Check if the route is protected (exact match or subpath, not prefix match)
+  const pathname = request.nextUrl.pathname;
   const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
+    pathname === route || pathname.startsWith(route + "/")
   );
 
   if (isProtectedRoute && !user) {
