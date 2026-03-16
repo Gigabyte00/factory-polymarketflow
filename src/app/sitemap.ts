@@ -24,14 +24,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/privacy`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
   ];
 
-  // Blog articles
-  const blogSlugs = ["what-is-polymarket", "whale-tracking-guide", "prediction-market-strategies", "understanding-polymarket-odds", "polymarket-vs-polls", "volume-spike-detection"];
-  const blogPages: MetadataRoute.Sitemap = blogSlugs.map((slug) => ({
-    url: `${baseUrl}/blog/${slug}`,
-    lastModified: new Date(),
-    changeFrequency: "monthly" as const,
-    priority: 0.6,
-  }));
+  // Blog articles — now from database
+  let blogPages: MetadataRoute.Sitemap = [];
+  try {
+    const blogDb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { db: { schema: "pmflow" } });
+    const { data: posts } = await blogDb
+      .from("posts")
+      .select("slug, published_at, type")
+      .eq("published", true)
+      .order("published_at", { ascending: false })
+      .limit(100);
+
+    blogPages = (posts || []).map((p: any) => ({
+      url: `${baseUrl}/blog/${p.slug}`,
+      lastModified: new Date(p.published_at || new Date()),
+      changeFrequency: (p.type === "briefing" ? "daily" : "monthly") as "daily" | "monthly",
+      priority: p.type === "briefing" ? 0.7 : 0.6,
+    }));
+  } catch {
+    // Fallback to hardcoded slugs
+    const fallbackSlugs = ["what-is-polymarket", "whale-tracking-guide", "prediction-market-strategies", "understanding-polymarket-odds", "polymarket-vs-polls", "volume-spike-detection"];
+    blogPages = fallbackSlugs.map((slug) => ({
+      url: `${baseUrl}/blog/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    }));
+  }
 
   // Prediction category hub pages
   const categories = ["politics", "crypto", "sports", "science-tech", "culture", "economics", "weather"];
