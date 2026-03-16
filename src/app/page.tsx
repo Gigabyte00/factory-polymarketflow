@@ -177,6 +177,25 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Explore Links — SEO internal linking from indexed homepage */}
+      <section className="py-12 px-4 border-t border-border">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-lg font-bold mb-6 text-center">Explore PolymarketFlow</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 text-sm">
+            <Link href="/whale-tracker" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Whale Tracker</span><p className="text-[10px] text-muted-foreground mt-0.5">Follow smart money</p></Link>
+            <Link href="/tools" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Free Tools</span><p className="text-[10px] text-muted-foreground mt-0.5">All Polymarket tools</p></Link>
+            <Link href="/alerts-feed" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Whale Alerts</span><p className="text-[10px] text-muted-foreground mt-0.5">Free delayed alerts</p></Link>
+            <Link href="/scorecard" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Scorecard</span><p className="text-[10px] text-muted-foreground mt-0.5">Performance data</p></Link>
+            <Link href="/accuracy" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Accuracy</span><p className="text-[10px] text-muted-foreground mt-0.5">Market accuracy data</p></Link>
+            <Link href="/predictions/politics" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Politics</span><p className="text-[10px] text-muted-foreground mt-0.5">Political predictions</p></Link>
+            <Link href="/predictions/crypto" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Crypto</span><p className="text-[10px] text-muted-foreground mt-0.5">Crypto predictions</p></Link>
+            <Link href="/predictions/sports" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Sports</span><p className="text-[10px] text-muted-foreground mt-0.5">Sports predictions</p></Link>
+            <Link href="/blog/what-is-polymarket" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">What is Polymarket?</span><p className="text-[10px] text-muted-foreground mt-0.5">Complete guide</p></Link>
+            <Link href="/daily/2026-03-16" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Today&apos;s Odds</span><p className="text-[10px] text-muted-foreground mt-0.5">Daily snapshot</p></Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="py-20 px-4 border-t border-border text-center">
         <div className="max-w-2xl mx-auto">
