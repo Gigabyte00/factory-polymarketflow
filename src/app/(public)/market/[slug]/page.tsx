@@ -1,4 +1,9 @@
 import { getEventBySlug, getTopHoldersForMarket } from "@/lib/supabase/pmflow";
+import { PriceChart } from "@/components/charts/price-chart";
+
+function PriceChartWrapper({ tokenId }: { tokenId: string }) {
+  return <PriceChart tokenId={tokenId} height={280} />;
+}
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { ArrowUpRight, BarChart3, Bell, Clock, Droplets, ExternalLink, TrendingUp, Users } from "lucide-react";
@@ -84,15 +89,16 @@ export default async function MarketDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Chart placeholder */}
+          {/* Price Chart */}
           <div className="terminal-card p-6">
             <h2 className="text-sm font-semibold mb-4 flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" />Price History</h2>
-            <div className="h-64 flex items-center justify-center border border-dashed border-border rounded-lg bg-muted/20">
-              <div className="text-center">
-                <BarChart3 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">TradingView chart — coming soon</p>
+            {market?.clob_token_ids?.[0] ? (
+              <PriceChartWrapper tokenId={market.clob_token_ids[0]} />
+            ) : (
+              <div className="h-64 flex items-center justify-center border border-dashed border-border rounded-lg bg-muted/20">
+                <p className="text-sm text-muted-foreground">No price data available for this market</p>
               </div>
-            </div>
+            )}
           </div>
 
           {/* All markets in this event */}

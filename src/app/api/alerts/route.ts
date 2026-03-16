@@ -26,8 +26,21 @@ export async function POST(request: Request) {
   // Check tier
   const db = getDb();
   const { data: profile } = await db.from("users").select("tier").eq("id", user.id).single();
-  if (!profile || (profile.tier !== "pro" && profile.tier !== "elite")) {
-    return NextResponse.json({ error: "Pro subscription required" }, { status: 403 });
+  const isPro = profile?.tier === "pro";
+
+  // Free users get 3 alerts, Pro users get unlimited
+  if (!isPro) {
+    const { count } = await db
+      .from("alert_rules")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    if ((count || 0) >= 3) {
+      return NextResponse.json({
+        error: "Free plan limited to 3 alerts. Upgrade to Pro for unlimited alerts.",
+        limit: 3,
+        current: count,
+      }, { status: 403 });
+    }
   }
 
   const body = await request.json();

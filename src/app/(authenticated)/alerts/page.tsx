@@ -14,20 +14,7 @@ export default async function AlertsPage() {
   if (!user) redirect("/auth");
 
   const profile = await getUserProfile(user.id);
-  const isPro = profile?.tier === "pro" || profile?.tier === "elite";
-
-  if (!isPro) {
-    return (
-      <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
-        <div className="terminal-card p-12 text-center max-w-lg mx-auto mt-12">
-          <Bell className="h-12 w-12 text-primary mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Price Alerts</h1>
-          <p className="text-muted-foreground mb-6">Get notified via email or Slack when any market crosses your price threshold.</p>
-          <Link href="/pricing" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors">Upgrade to Pro</Link>
-        </div>
-      </div>
-    );
-  }
+  const isPro = profile?.tier === "pro";
 
   const alerts = await getUserAlerts(user.id);
 

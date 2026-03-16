@@ -10,6 +10,11 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
+import { ActivityFeed } from "@/components/feed/activity-feed";
+
+function ActivityFeedWrapper() {
+  return <ActivityFeed />;
+}
 
 export default function HomePage() {
   return (
@@ -56,6 +61,13 @@ export default function HomePage() {
           <StatCard label="24h Volume" value="$84M" />
           <StatCard label="Tracked Whales" value="500+" />
           <StatCard label="Alerts Sent" value="12K+" />
+        </div>
+      </section>
+
+      {/* Live Activity Feed */}
+      <section className="py-8 px-4 border-t border-border">
+        <div className="max-w-6xl mx-auto">
+          <ActivityFeedWrapper />
         </div>
       </section>
 
