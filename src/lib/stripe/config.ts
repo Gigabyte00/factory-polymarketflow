@@ -16,8 +16,16 @@ export function getStripe(): Stripe {
 }
 
 export const PRICE_IDS = {
-  monthly: process.env.STRIPE_MONTHLY_PRICE_ID || "",
-  annual: process.env.STRIPE_ANNUAL_PRICE_ID || "",
+  starter_monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID || "",
+  starter_annual: process.env.STRIPE_STARTER_ANNUAL_PRICE_ID || "",
+  pro_monthly: process.env.STRIPE_MONTHLY_PRICE_ID || "",
+  pro_annual: process.env.STRIPE_ANNUAL_PRICE_ID || "",
 } as const;
 
+export type PlanType = "starter" | "pro";
 export type BillingInterval = "monthly" | "annual";
+
+export function getPriceId(plan: PlanType, billing: BillingInterval): string {
+  const key = `${plan}_${billing}` as keyof typeof PRICE_IDS;
+  return PRICE_IDS[key] || "";
+}

@@ -133,29 +133,40 @@ export default function HomePage() {
             Start free. Upgrade when you need more power.
           </p>
 
-          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             <PricingCard
               tier="Free"
               price="$0"
               features={[
                 "Market Explorer",
-                "Basic Price Charts",
-                "Market Movers",
-                "Leaderboard",
+                "Delayed Whale Alerts",
+                "3 Price Alerts",
+                "Weekly Email Digest",
               ]}
               cta="Get Started"
               href="/auth"
+            />
+            <PricingCard
+              tier="Starter"
+              price="$49"
+              period="/mo"
+              features={[
+                "Real-time Alerts",
+                "Market Screener",
+                "Unlimited Watchlists",
+                "Daily AI Briefing",
+              ]}
+              cta="Start Starter"
+              href="/pricing"
             />
             <PricingCard
               tier="Pro"
               price="$199"
               period="/mo"
               features={[
-                "Everything in Free",
-                "Whale Tracker",
-                "Price Alerts",
-                "AI Market Briefings",
-                "Portfolio Tracker",
+                "Flow Feed",
+                "Smart Money Signals",
+                "Advanced Portfolio",
                 "Priority Support",
               ]}
               cta="Start Pro"
