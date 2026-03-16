@@ -446,27 +446,37 @@ export async function POST(request: Request) {
   // ============ TASK 5: Compute Smart Money Labels ============
   if (tasks.includes("smart_money")) {
     try {
-      // Count markets traded and compute avg position per whale
-      const { data: whaleStats } = await pmflow.rpc("exec_sql", {
-        query: `
-          UPDATE pmflow.whale_wallets w SET
-            markets_traded = sub.market_count,
-            avg_position_size = sub.avg_amount,
-            last_active_at = sub.last_seen
-          FROM (
-            SELECT wallet_address,
-              COUNT(DISTINCT market_id) as market_count,
-              AVG(amount) as avg_amount,
-              MAX(snapshot_at) as last_seen
-            FROM pmflow.top_holders
-            GROUP BY wallet_address
-          ) sub
-          WHERE w.wallet_address = sub.wallet_address
-        `,
-      });
+      // Compute markets traded + avg position from top_holders
+      const { data: holderStats } = await pmflow
+        .from("top_holders")
+        .select("wallet_address, market_id, amount, snapshot_at");
 
-      // Compute smart money score (0-100) based on:
-      // volume (30%), markets traded (30%), pnl (20%), recency (20%)
+      if (holderStats && holderStats.length > 0) {
+        // Aggregate per wallet
+        const walletMap: Record<string, { markets: Set<string>; totalAmount: number; count: number; lastSeen: string }> = {};
+        for (const h of holderStats) {
+          if (!h.wallet_address) continue;
+          if (!walletMap[h.wallet_address]) {
+            walletMap[h.wallet_address] = { markets: new Set(), totalAmount: 0, count: 0, lastSeen: h.snapshot_at || "" };
+          }
+          const w = walletMap[h.wallet_address];
+          w.markets.add(h.market_id);
+          w.totalAmount += h.amount || 0;
+          w.count++;
+          if (h.snapshot_at && h.snapshot_at > w.lastSeen) w.lastSeen = h.snapshot_at;
+        }
+
+        // Update whale_wallets with computed stats
+        for (const [addr, stats] of Object.entries(walletMap)) {
+          await pmflow.from("whale_wallets").update({
+            markets_traded: stats.markets.size,
+            avg_position_size: stats.count > 0 ? stats.totalAmount / stats.count : 0,
+            last_active_at: stats.lastSeen || null,
+          }).eq("wallet_address", addr);
+        }
+      }
+
+      // Compute smart money score (0-100)
       const { data: whales } = await pmflow
         .from("whale_wallets")
         .select("wallet_address, total_volume, total_pnl, markets_traded, last_active_at")
