@@ -201,60 +201,73 @@ export async function POST(request: Request) {
     }
   }
 
-  // ============ TASK 2: Capture Price Snapshots ============
+  // ============ TASK 2: Capture Price Snapshots (top 500 markets) ============
   if (tasks.includes("prices")) {
     try {
-      // Get all markets with CLOB token IDs
+      // Get top 500 active markets by 24h volume with token IDs
       const { data: markets } = await pmflow
         .from("markets")
         .select("id, clob_token_ids")
         .eq("active", true)
-        .not("clob_token_ids", "is", null);
+        .not("clob_token_ids", "is", null)
+        .order("volume_24h", { ascending: false, nullsFirst: false })
+        .limit(500);
 
       if (markets && markets.length > 0) {
         const now = new Date().toISOString();
         const priceRows: any[] = [];
 
-        // Batch fetch midpoints (up to 500 per call)
-        const allTokenIds = markets.flatMap((m: any) => {
-          const ids = m.clob_token_ids;
-          return Array.isArray(ids) ? ids : [];
-        }).filter((id: string) => id && id.length > 0);
+        // Build token ID to market ID map
+        const tokenToMarket: Record<string, string> = {};
+        const allTokenIds: string[] = [];
+        for (const m of markets) {
+          const ids = Array.isArray(m.clob_token_ids) ? m.clob_token_ids : [];
+          for (const id of ids) {
+            if (id && id.length > 0) {
+              tokenToMarket[id] = m.id;
+              allTokenIds.push(id);
+            }
+          }
+        }
 
-        // Fetch in batches of 100 tokens
+        // Use POST /midpoints with request body (handles large token lists)
         const midpointMap: Record<string, number> = {};
-        for (let i = 0; i < allTokenIds.length; i += 100) {
-          const batch = allTokenIds.slice(i, i + 100);
-          const params = batch.map((id: string) => `token_ids=${id}`).join("&");
+        for (let i = 0; i < allTokenIds.length; i += 200) {
+          const batch = allTokenIds.slice(i, i + 200);
           try {
-            const res = await fetch(`${CLOB_BASE}/midpoints?${params}`);
+            const res = await fetch(`${CLOB_BASE}/midpoints`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(batch),
+            });
             if (res.ok) {
-              const data = await res.json();
-              Object.assign(midpointMap, data);
+              Object.assign(midpointMap, await res.json());
+            } else {
+              // Fallback to query params for smaller batch
+              const params = batch.slice(0, 50).map((id: string) => `token_ids=${id}`).join("&");
+              const res2 = await fetch(`${CLOB_BASE}/midpoints?${params}`);
+              if (res2.ok) Object.assign(midpointMap, await res2.json());
             }
           } catch { /* skip failed batches */ }
         }
 
         // Create price history rows
-        for (const market of markets) {
-          const tokenIds = Array.isArray(market.clob_token_ids) ? market.clob_token_ids : [];
-          for (const tokenId of tokenIds) {
-            const price = midpointMap[tokenId];
-            if (price !== undefined) {
-              priceRows.push({
-                market_id: market.id,
-                token_id: tokenId,
-                timestamp: now,
-                price: parseFloat(String(price)),
-              });
-            }
+        for (const [tokenId, price] of Object.entries(midpointMap)) {
+          const marketId = tokenToMarket[tokenId];
+          if (marketId && price !== undefined) {
+            priceRows.push({
+              market_id: marketId,
+              token_id: tokenId,
+              timestamp: now,
+              price: parseFloat(String(price)),
+            });
           }
         }
 
         // Insert price snapshots
         if (priceRows.length > 0) {
-          for (let i = 0; i < priceRows.length; i += 100) {
-            const batch = priceRows.slice(i, i + 100);
+          for (let i = 0; i < priceRows.length; i += 200) {
+            const batch = priceRows.slice(i, i + 200);
             await pmflow
               .from("price_history")
               .upsert(batch, { onConflict: "market_id,token_id,timestamp", ignoreDuplicates: true });
@@ -267,6 +280,74 @@ export async function POST(request: Request) {
       }
     } catch (err: any) {
       results.prices = { success: false, error: err.message };
+    }
+  }
+
+  // ============ TASK 2b: Backfill Price History ============
+  if (tasks.includes("backfill")) {
+    try {
+      // Get top 100 markets that don't have much price history yet
+      const { data: markets } = await pmflow
+        .from("markets")
+        .select("id, clob_token_ids")
+        .eq("active", true)
+        .not("clob_token_ids", "is", null)
+        .order("volume_24h", { ascending: false, nullsFirst: false })
+        .limit(100);
+
+      let backfillCount = 0;
+      if (markets) {
+        for (const market of markets) {
+          const tokenIds = Array.isArray(market.clob_token_ids) ? market.clob_token_ids : [];
+          const firstToken = tokenIds[0];
+          if (!firstToken) continue;
+
+          // Check if we already have history for this market
+          const { count: existing } = await pmflow
+            .from("price_history")
+            .select("id", { count: "exact", head: true })
+            .eq("market_id", market.id);
+
+          // Skip if we already have > 100 data points
+          if (existing && existing > 100) continue;
+
+          try {
+            // Fetch full history at 60-min fidelity
+            const res = await fetch(
+              `${CLOB_BASE}/prices-history?market=${firstToken}&interval=all&fidelity=60`
+            );
+            if (!res.ok) continue;
+
+            const data = await res.json();
+            const history = data.history || [];
+
+            if (history.length > 0) {
+              const rows = history.map((point: any) => ({
+                market_id: market.id,
+                token_id: firstToken,
+                timestamp: new Date(point.t * 1000).toISOString(),
+                price: point.p,
+              }));
+
+              // Insert in batches
+              for (let i = 0; i < rows.length; i += 200) {
+                const batch = rows.slice(i, i + 200);
+                await pmflow
+                  .from("price_history")
+                  .upsert(batch, { onConflict: "market_id,token_id,timestamp", ignoreDuplicates: true });
+              }
+              backfillCount += rows.length;
+            }
+          } catch { /* skip individual failures */ }
+
+          // Rate limit: small delay between markets
+          await new Promise((r) => setTimeout(r, 50));
+        }
+      }
+
+      results.backfill = { success: true, count: backfillCount };
+    } catch (err: any) {
+      results.backfill = { success: false, error: err.message };
     }
   }
 
