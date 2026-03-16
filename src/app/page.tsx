@@ -101,7 +101,7 @@ export default function HomePage() {
               icon={Brain}
               title="AI Briefings"
               description="Claude-powered daily intelligence reports. What moved, why, and what to watch next."
-              tier="elite"
+              tier="pro"
             />
           </div>
         </div>
@@ -191,7 +191,7 @@ function FeatureCard({
   icon: React.ElementType;
   title: string;
   description: string;
-  tier: "free" | "pro" | "elite";
+  tier: "free" | "pro";
 }) {
   return (
     <div className="terminal-card p-6 hover:border-primary/30 transition-colors">
@@ -202,11 +202,7 @@ function FeatureCard({
         <h3 className="font-semibold">{title}</h3>
         {tier !== "free" && (
           <span
-            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-              tier === "pro"
-                ? "bg-primary/20 text-primary"
-                : "bg-warning/20 text-warning"
-            }`}
+            className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary"
           >
             {tier.toUpperCase()}
           </span>
