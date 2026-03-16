@@ -217,51 +217,33 @@ export async function POST(request: Request) {
         const now = new Date().toISOString();
         const priceRows: any[] = [];
 
-        // Build token ID to market ID map
-        const tokenToMarket: Record<string, string> = {};
-        const allTokenIds: string[] = [];
-        for (const m of markets) {
+        // Fetch midpoint for each market's first token using singular /midpoint
+        // Rate limit: 1,500 req/10s — we fetch 500 markets max
+        const fetchPromises = markets.map(async (m: any) => {
           const ids = Array.isArray(m.clob_token_ids) ? m.clob_token_ids : [];
-          for (const id of ids) {
-            if (id && id.length > 0) {
-              tokenToMarket[id] = m.id;
-              allTokenIds.push(id);
-            }
-          }
-        }
+          const tokenId = ids[0]; // First token (YES outcome)
+          if (!tokenId) return;
 
-        // Use POST /midpoints with request body (handles large token lists)
-        const midpointMap: Record<string, number> = {};
-        for (let i = 0; i < allTokenIds.length; i += 200) {
-          const batch = allTokenIds.slice(i, i + 200);
           try {
-            const res = await fetch(`${CLOB_BASE}/midpoints`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(batch),
-            });
+            const res = await fetch(`${CLOB_BASE}/midpoint?token_id=${tokenId}`);
             if (res.ok) {
-              Object.assign(midpointMap, await res.json());
-            } else {
-              // Fallback to query params for smaller batch
-              const params = batch.slice(0, 50).map((id: string) => `token_ids=${id}`).join("&");
-              const res2 = await fetch(`${CLOB_BASE}/midpoints?${params}`);
-              if (res2.ok) Object.assign(midpointMap, await res2.json());
+              const data = await res.json();
+              const price = parseFloat(data.mid);
+              if (!isNaN(price)) {
+                priceRows.push({
+                  market_id: m.id,
+                  token_id: tokenId,
+                  timestamp: now,
+                  price,
+                });
+              }
             }
-          } catch { /* skip failed batches */ }
-        }
+          } catch { /* skip */ }
+        });
 
-        // Create price history rows
-        for (const [tokenId, price] of Object.entries(midpointMap)) {
-          const marketId = tokenToMarket[tokenId];
-          if (marketId && price !== undefined) {
-            priceRows.push({
-              market_id: marketId,
-              token_id: tokenId,
-              timestamp: now,
-              price: parseFloat(String(price)),
-            });
-          }
+        // Process in batches of 50 concurrent requests
+        for (let i = 0; i < fetchPromises.length; i += 50) {
+          await Promise.allSettled(fetchPromises.slice(i, i + 50));
         }
 
         // Insert price snapshots
