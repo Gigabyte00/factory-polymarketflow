@@ -64,17 +64,17 @@ export function SoftwareAppSchema() {
       },
       {
         "@type": "Offer",
-        name: "Pro",
-        price: "19",
+        name: "Pro Monthly",
+        price: "199",
         priceCurrency: "USD",
         billingIncrement: "P1M",
       },
       {
         "@type": "Offer",
-        name: "Elite",
-        price: "49",
+        name: "Pro Annual",
+        price: "1990",
         priceCurrency: "USD",
-        billingIncrement: "P1M",
+        billingIncrement: "P1Y",
       },
     ],
   };
