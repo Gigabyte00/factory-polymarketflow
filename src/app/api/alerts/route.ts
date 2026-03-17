@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { getAlertLimit, isStarter } from "@/lib/entitlements";
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -26,18 +27,17 @@ export async function POST(request: Request) {
   // Check tier
   const db = getDb();
   const { data: profile } = await db.from("users").select("tier").eq("id", user.id).single();
-  const isPro = profile?.tier === "pro";
+  const limit = getAlertLimit(profile);
 
-  // Free users get 3 alerts, Pro users get unlimited
-  if (!isPro) {
+  if (limit !== null) {
     const { count } = await db
       .from("alert_rules")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id);
-    if ((count || 0) >= 3) {
+    if ((count || 0) >= limit) {
       return NextResponse.json({
-        error: "Free plan limited to 3 alerts. Upgrade to Pro for unlimited alerts.",
-        limit: 3,
+        error: `Current plan limited to ${limit} alerts. Upgrade for more.`,
+        limit,
         current: count,
       }, { status: 403 });
     }

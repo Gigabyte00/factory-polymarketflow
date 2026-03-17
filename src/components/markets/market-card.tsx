@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { cn, formatCompact, formatProbability, formatChange } from "@/lib/utils";
+import { WatchlistButton } from "@/components/markets/watchlist-button";
 
 /**
  * MarketCard works with both Polymarket API events AND Supabase DbEvent rows.
@@ -29,7 +30,11 @@ export function MarketCard({ event }: { event: any }) {
   }
 
   return (
-    <Link href={`/market/${slug}`} className="terminal-card p-4 hover:border-primary/30 transition-all group">
+    <div className="terminal-card p-4 hover:border-primary/30 transition-all group">
+      <div className="flex items-center justify-end mb-2">
+        {event.id && <WatchlistButton eventId={event.id} />}
+      </div>
+      <Link href={`/market/${slug}`}>
       <div className="flex items-start gap-3">
         {image && (
           <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-muted">
@@ -68,6 +73,7 @@ export function MarketCard({ event }: { event: any }) {
         )}
         {volume24h > 0 && <span className="text-muted-foreground font-mono">{formatCompact(volume24h)} 24h</span>}
       </div>
-    </Link>
+      </Link>
+    </div>
   );
 }

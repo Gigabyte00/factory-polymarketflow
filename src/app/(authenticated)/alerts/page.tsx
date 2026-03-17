@@ -5,6 +5,7 @@ import { Bell, Plus, Trash2 } from "lucide-react";
 import { cn, formatProbability } from "@/lib/utils";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { getAlertLimit, getTier, isStarter } from "@/lib/entitlements";
 
 export const metadata: Metadata = { title: "Price Alerts" };
 
@@ -14,7 +15,8 @@ export default async function AlertsPage() {
   if (!user) redirect("/auth");
 
   const profile = await getUserProfile(user.id);
-  const isPro = profile?.tier === "pro";
+  const tier = getTier(profile);
+  const limit = getAlertLimit(profile);
 
   const alerts = await getUserAlerts(user.id);
 
@@ -23,11 +25,11 @@ export default async function AlertsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Bell className="h-6 w-6 text-primary" />Price Alerts</h1>
-          <p className="text-muted-foreground text-sm mt-1">{alerts.length} active alerts</p>
+          <p className="text-muted-foreground text-sm mt-1">{alerts.length} active alerts{limit ? ` (${limit} max on ${tier})` : ""}</p>
         </div>
-        <Link href="/markets" className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors">
-          <Plus className="h-4 w-4" />New Alert
-        </Link>
+          <Link href="/markets" className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors">
+            <Plus className="h-4 w-4" />New Alert
+          </Link>
       </div>
 
       {alerts.length > 0 ? (

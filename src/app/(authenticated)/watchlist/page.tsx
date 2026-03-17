@@ -5,6 +5,7 @@ import { Star, Plus, Trash2 } from "lucide-react";
 import { formatCompact, formatProbability } from "@/lib/utils";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { getWatchlistItemLimit, getWatchlistLimit, isStarter } from "@/lib/entitlements";
 
 export const metadata: Metadata = { title: "Watchlist" };
 
@@ -22,7 +23,9 @@ export default async function WatchlistPage() {
     .order("created_at", { ascending: false });
 
   const { data: profile } = await db.from("users").select("tier").eq("id", user.id).single();
-  const isPro = profile?.tier === "pro";
+  const hasStarter = isStarter(profile);
+  const wlLimit = getWatchlistLimit(profile);
+  const itemLimit = getWatchlistItemLimit(profile);
 
   return (
     <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
@@ -71,7 +74,7 @@ export default async function WatchlistPage() {
           <Star className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
           <h2 className="text-lg font-semibold mb-2">No watchlists yet</h2>
           <p className="text-sm text-muted-foreground mb-4">Create your first watchlist to track markets you care about.</p>
-          <p className="text-xs text-muted-foreground">{isPro ? "Unlimited watchlists with Pro" : "Free plan: 2 watchlists, 10 markets each"}</p>
+          <p className="text-xs text-muted-foreground">{hasStarter ? "Unlimited watchlists with Starter/Pro" : `Free plan: ${wlLimit} watchlists, ${itemLimit} markets each`}</p>
           <Link href="/markets" className="inline-block mt-4 text-sm text-primary hover:underline">Browse Markets</Link>
         </div>
       )}

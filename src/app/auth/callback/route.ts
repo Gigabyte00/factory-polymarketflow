@@ -49,6 +49,18 @@ export async function GET(request: Request) {
         // Generate referral code from user ID
         const referralCode = user.id.split("-")[0] + user.id.split("-")[1];
 
+        let referredBy: string | null = null;
+        const incomingReferralCode = user.user_metadata?.referral_code || null;
+        if (incomingReferralCode) {
+          const { data: referrer } = await serviceClient
+            .schema("pmflow")
+            .from("users")
+            .select("id")
+            .eq("referral_code", incomingReferralCode)
+            .single();
+          referredBy = referrer?.id || null;
+        }
+
         await serviceClient.schema("pmflow").from("users").upsert(
           {
             id: user.id,
@@ -56,9 +68,25 @@ export async function GET(request: Request) {
             name: user.user_metadata?.full_name || null,
             tier: "free",
             referral_code: referralCode,
+            referred_by: referredBy,
           },
-          { onConflict: "id", ignoreDuplicates: true }
+          { onConflict: "id" }
         );
+
+        if (referredBy && user.email) {
+          await serviceClient
+            .schema("pmflow")
+            .from("referrals")
+            .upsert(
+              {
+                referrer_user_id: referredBy,
+                referred_email: user.email,
+                referred_user_id: user.id,
+                status: "signed_up",
+              },
+              { onConflict: "referred_email" }
+            );
+        }
       }
 
       const forwardedHost = request.headers.get("x-forwarded-host");

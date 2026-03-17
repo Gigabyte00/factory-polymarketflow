@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { canAccessBriefings, canAccessPortfolio, getTier, isPro, isStarter } from "@/lib/entitlements";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -41,8 +42,9 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .single();
 
-  const tier = profile?.tier || "free";
-  const isPro = tier === "pro";
+  const tier = getTier(profile);
+  const hasStarter = isStarter(profile);
+  const hasPro = isPro(profile);
 
   return (
     <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
@@ -59,7 +61,7 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3">
           <div
             className={`px-3 py-1 rounded-full text-sm font-bold ${
-              isPro
+              hasPro
                 ? "bg-primary/20 text-primary"
                 : "bg-muted text-muted-foreground"
             }`}
@@ -67,12 +69,14 @@ export default async function DashboardPage() {
             {tier.toUpperCase()}
           </div>
           <span className="text-sm text-muted-foreground">
-            {isPro
+            {hasPro
               ? "Full access to all features"
-              : "Upgrade to unlock premium features"}
+              : hasStarter
+                ? "Starter access enabled"
+                : "Upgrade to unlock premium features"}
           </span>
         </div>
-        {!isPro && (
+        {!hasPro && (
           <Link
             href="/pricing"
             className="flex items-center gap-1 text-sm text-primary hover:underline"
@@ -104,7 +108,7 @@ export default async function DashboardPage() {
           title="Whale Tracker"
           description="Follow smart money movements"
           href="/whales"
-          available={isPro}
+          available={hasPro}
           tier="PRO"
         />
         <QuickAction
@@ -112,24 +116,24 @@ export default async function DashboardPage() {
           title="Price Alerts"
           description="Get notified on price changes"
           href="/alerts"
-          available={isPro}
-          tier="PRO"
+          available={hasStarter}
+          tier={hasStarter ? undefined : "STARTER"}
         />
         <QuickAction
           icon={Wallet}
           title="Portfolio"
           description="Track your positions and PnL"
           href="/portfolio"
-          available={isPro}
-          tier="PRO"
+          available={canAccessPortfolio(profile)}
+          tier={hasStarter ? undefined : "STARTER"}
         />
         <QuickAction
           icon={Zap}
           title="AI Briefings"
           description="Daily market intelligence reports"
           href="/briefings"
-          available={isPro}
-           tier="PRO"
+          available={canAccessBriefings(profile)}
+           tier={hasStarter ? undefined : "STARTER"}
         />
       </div>
 
@@ -139,7 +143,7 @@ export default async function DashboardPage() {
           <Bell className="h-4 w-4 text-primary" />
           Recent Alerts
         </h2>
-        {isPro ? (
+        {hasStarter ? (
           <div className="text-center py-8">
             <Bell className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
@@ -156,7 +160,7 @@ export default async function DashboardPage() {
           <div className="text-center py-8">
             <Bell className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
-              Price alerts are available with Pro.
+              Price alerts are available with Starter.
             </p>
             <Link
               href="/pricing"

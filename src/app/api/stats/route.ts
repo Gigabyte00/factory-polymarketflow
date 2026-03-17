@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { isInternalOrTestEmail } from "@/lib/entitlements";
 
 const INGEST_API_KEY = process.env.INGEST_API_KEY || "";
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || "";
@@ -29,9 +30,19 @@ export async function POST(request: Request) {
     counts[table] = count || 0;
   }
 
-  // 2. Email subscribers count
-  const { count: subscriberCount } = await db.from("email_subscribers").select("*", { count: "exact", head: true });
-  counts.email_subscribers = subscriberCount || 0;
+  // 2. Real vs test users / subscribers
+  const { data: userRows } = await db.from("users").select("email, tier");
+  const realUsers = (userRows || []).filter((u: any) => !isInternalOrTestEmail(u.email));
+  const internalUsers = (userRows || []).filter((u: any) => isInternalOrTestEmail(u.email));
+
+  const { data: subscriberRows } = await db.from("email_subscribers").select("email, unsubscribed").eq("unsubscribed", false);
+  const realSubscribers = (subscriberRows || []).filter((s: any) => !isInternalOrTestEmail(s.email));
+  const internalSubscribers = (subscriberRows || []).filter((s: any) => isInternalOrTestEmail(s.email));
+
+  counts.real_users = realUsers.length;
+  counts.internal_users = internalUsers.length;
+  counts.real_email_subscribers = realSubscribers.length;
+  counts.internal_email_subscribers = internalSubscribers.length;
 
   // 3. Recent sync stats
   const { data: recentSyncs } = await db
@@ -107,8 +118,14 @@ export async function POST(request: Request) {
       {
         type: "section",
         fields: [
-          { type: "mrkdwn", text: `*Users*\n${counts.users} registered\n${counts.email_subscribers} email subs` },
+          { type: "mrkdwn", text: `*Users*\n${counts.real_users} real\n${counts.real_email_subscribers} real email subs` },
           { type: "mrkdwn", text: `*Data Freshness*\n${freshnessMinutes >= 0 ? `${freshnessMinutes}m ago` : "unknown"}` },
+        ],
+      },
+      {
+        type: "context",
+        elements: [
+          { type: "mrkdwn", text: `Internal/test records excluded: ${counts.internal_users} users, ${counts.internal_email_subscribers} email subs` },
         ],
       },
       {
@@ -143,6 +160,12 @@ export async function POST(request: Request) {
     growth: {
       prices_last_hour: pricesLastHour || 0,
       new_whales_last_hour: newWhales || 0,
+    },
+    users: {
+      real_users: counts.real_users,
+      internal_users: counts.internal_users,
+      real_email_subscribers: counts.real_email_subscribers,
+      internal_email_subscribers: counts.internal_email_subscribers,
     },
     sync_stats: syncStats,
     freshness_minutes: freshnessMinutes,

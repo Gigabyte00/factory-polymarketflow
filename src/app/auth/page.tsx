@@ -26,6 +26,7 @@ function AuthForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/dashboard";
   const plan = searchParams.get("plan");
+  const referralCode = searchParams.get("ref");
 
   const supabase = createClient();
 
@@ -54,6 +55,7 @@ function AuthForm() {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             requested_plan: plan || "free",
+            referral_code: referralCode || null,
           },
         },
       });
@@ -94,13 +96,22 @@ function AuthForm() {
             </span>
             <span
               className={`text-xs font-bold px-1.5 py-0.5 rounded ${
-                plan === "elite"
-                  ? "bg-warning/20 text-warning"
-                  : "bg-primary/20 text-primary"
+                plan === "pro"
+                  ? "bg-primary/20 text-primary"
+                  : plan === "starter"
+                    ? "bg-info/20 text-info"
+                    : "bg-muted text-muted-foreground"
               }`}
             >
               {plan.toUpperCase()}
             </span>
+          </div>
+        )}
+
+        {referralCode && mode === "signup" && (
+          <div className="terminal-card p-3 mb-4 text-center">
+            <span className="text-xs text-muted-foreground">Referral applied: </span>
+            <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono">{referralCode}</span>
           </div>
         )}
 

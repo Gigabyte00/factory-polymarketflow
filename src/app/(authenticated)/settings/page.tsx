@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { Settings, Save, LogOut, Loader2 } from "lucide-react";
+import { Settings, Save, LogOut, Loader2, Copy, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
@@ -22,6 +22,7 @@ function SettingsContent() {
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [wallet, setWallet] = useState("");
+  const [referral, setReferral] = useState<any>(null);
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
   useEffect(() => {
@@ -36,6 +37,10 @@ function SettingsContent() {
         const data = await res.json();
         setProfile(data);
         setWallet(data.polymarket_wallet || "");
+      }
+      const refRes = await fetch(`/api/referrals`);
+      if (refRes.ok) {
+        setReferral(await refRes.json());
       }
       setLoading(false);
     }
@@ -64,6 +69,13 @@ function SettingsContent() {
     router.refresh();
   }
 
+  async function copyReferralLink() {
+    if (!referral?.referral_code) return;
+    const link = `${window.location.origin}/auth?ref=${referral.referral_code}`;
+    await navigator.clipboard.writeText(link);
+    setMessage("Referral link copied.");
+  }
+
   if (loading) {
     return <div className="p-6 flex items-center justify-center min-h-[50vh]"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
@@ -84,9 +96,27 @@ function SettingsContent() {
           </div>
           <div>
             <label className="block text-xs text-muted-foreground mb-1">Plan</label>
-            <div className={`inline-flex px-3 py-1 rounded text-sm font-bold ${profile?.tier === "elite" ? "bg-warning/20 text-warning" : profile?.tier === "pro" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+            <div className={`inline-flex px-3 py-1 rounded text-sm font-bold ${profile?.tier === "pro" ? "bg-primary/20 text-primary" : profile?.tier === "starter" ? "bg-info/20 text-info" : "bg-muted text-muted-foreground"}`}>
               {(profile?.tier || "free").toUpperCase()}
             </div>
+          </div>
+        </div>
+
+        {/* Referrals */}
+        <div className="terminal-card p-6 space-y-4">
+          <h2 className="text-sm font-semibold flex items-center gap-2"><Users className="h-4 w-4 text-primary" />Referral Program</h2>
+          <p className="text-xs text-muted-foreground">Refer 3 paying users and get 1 month Pro free.</p>
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1">Referral Code</label>
+            <div className="flex items-center gap-2">
+              <input type="text" value={referral?.referral_code || "Generating..."} disabled className="flex-1 px-3 py-2 rounded-md bg-muted border border-border text-sm font-mono text-muted-foreground" />
+              <button onClick={copyReferralLink} className="px-3 py-2 rounded-md border border-border text-sm hover:bg-accent transition-colors"><Copy className="h-4 w-4" /></button>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-md bg-muted/30 p-3"><div className="text-lg font-mono font-bold">{referral?.stats?.total || 0}</div><div className="text-[10px] text-muted-foreground">Total refs</div></div>
+            <div className="rounded-md bg-muted/30 p-3"><div className="text-lg font-mono font-bold">{referral?.stats?.subscribed || 0}</div><div className="text-[10px] text-muted-foreground">Paying refs</div></div>
+            <div className="rounded-md bg-muted/30 p-3"><div className="text-lg font-mono font-bold">{referral?.stats?.rewards || 0}</div><div className="text-[10px] text-muted-foreground">Rewards</div></div>
           </div>
         </div>
 

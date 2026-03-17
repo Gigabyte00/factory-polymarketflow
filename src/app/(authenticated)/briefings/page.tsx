@@ -5,6 +5,7 @@ import { Brain, Zap, Calendar } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { canAccessBriefings, hasPersonalizedBriefings } from "@/lib/entitlements";
 
 export const metadata: Metadata = { title: "AI Briefings" };
 
@@ -14,16 +15,17 @@ export default async function BriefingsPage() {
   if (!user) redirect("/auth");
 
   const profile = await getUserProfile(user.id);
-  const isPro = profile?.tier === "pro";
+  const hasAccess = canAccessBriefings(profile);
+  const personalized = hasPersonalizedBriefings(profile);
 
-  if (!isPro) {
+  if (!hasAccess) {
     return (
       <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
         <div className="terminal-card p-12 text-center max-w-lg mx-auto mt-12">
           <Brain className="h-12 w-12 text-warning mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">AI Market Briefings</h1>
-          <p className="text-muted-foreground mb-6">Claude-powered daily intelligence reports. What moved, why, and what to watch next.</p>
-          <Link href="/pricing" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors">Upgrade to Pro</Link>
+          <p className="text-muted-foreground mb-6">Claude-powered daily intelligence reports. Available on Starter and Pro.</p>
+          <Link href="/pricing" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors">Upgrade to Starter</Link>
         </div>
       </div>
     );
@@ -43,7 +45,7 @@ export default async function BriefingsPage() {
     <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold flex items-center gap-2"><Brain className="h-6 w-6 text-warning" />AI Briefings</h1>
-        <p className="text-muted-foreground text-sm mt-1">Daily market intelligence powered by Claude</p>
+        <p className="text-muted-foreground text-sm mt-1">Daily market intelligence powered by Claude {personalized ? "(personalized)" : ""}</p>
       </div>
 
       {briefings && briefings.length > 0 ? (

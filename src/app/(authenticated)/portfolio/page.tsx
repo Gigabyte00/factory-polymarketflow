@@ -5,6 +5,7 @@ import { Wallet, Link as LinkIcon, TrendingUp, BarChart3 } from "lucide-react";
 import { cn, formatCompact } from "@/lib/utils";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { canAccessAdvancedPortfolio, canAccessPortfolio } from "@/lib/entitlements";
 
 export const metadata: Metadata = { title: "Portfolio Tracker" };
 
@@ -35,8 +36,22 @@ export default async function PortfolioPage() {
   if (!user) redirect("/auth");
 
   const profile = await getUserProfile(user.id);
-  const isPro = profile?.tier === "pro";
+  const hasPortfolio = canAccessPortfolio(profile);
+  const hasAdvanced = canAccessAdvancedPortfolio(profile);
   const walletAddress = profile?.polymarket_wallet;
+
+  if (!hasPortfolio) {
+    return (
+      <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
+        <div className="terminal-card p-12 text-center max-w-lg mx-auto mt-12">
+          <Wallet className="h-12 w-12 text-primary mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Portfolio Tracker</h1>
+          <p className="text-muted-foreground mb-6">Connect your Polymarket wallet to track positions, trades, and portfolio value. Available on Starter and Pro.</p>
+          <Link href="/pricing" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors">Upgrade to Starter</Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!walletAddress) {
     return (
@@ -101,11 +116,11 @@ export default async function PortfolioPage() {
         <h2 className="text-sm font-semibold mb-4 flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" />
           Positions
-          {!isPro && positions.length > 5 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary">Pro shows all</span>}
+          {!hasAdvanced && positions.length > 5 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary">Pro shows all</span>}
         </h2>
         {positions.length > 0 ? (
           <div className="space-y-2">
-            {(isPro ? positions : positions.slice(0, 5)).map((pos: any, i: number) => (
+            {(hasAdvanced ? positions : positions.slice(0, 5)).map((pos: any, i: number) => (
               <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{pos.title || pos.market || "Unknown"}</p>
@@ -117,7 +132,7 @@ export default async function PortfolioPage() {
                 </div>
               </div>
             ))}
-            {!isPro && positions.length > 5 && (
+            {!hasAdvanced && positions.length > 5 && (
               <div className="text-center py-2">
                 <Link href="/pricing" className="text-xs text-primary hover:underline">Upgrade to Pro to see all {positions.length} positions</Link>
               </div>
@@ -136,14 +151,14 @@ export default async function PortfolioPage() {
         </h2>
         {trades.length > 0 ? (
           <div className="space-y-2">
-            {(isPro ? trades : trades.slice(0, 3)).map((t: any, i: number) => (
+            {(hasAdvanced ? trades : trades.slice(0, 3)).map((t: any, i: number) => (
               <div key={i} className="flex items-center justify-between p-2 rounded bg-muted/10 text-xs">
                 <span className={cn("font-mono font-semibold px-1.5 py-0.5 rounded", t.side === "BUY" ? "text-profit bg-profit/10" : "text-loss bg-loss/10")}>{t.side}</span>
                 <span className="text-muted-foreground truncate mx-2 flex-1">{t.title || t.market || "Unknown"}</span>
                 <span className="font-mono">{parseFloat(t.size || "0").toFixed(2)} @ ${parseFloat(t.price || "0").toFixed(2)}</span>
               </div>
             ))}
-            {!isPro && trades.length > 3 && (
+            {!hasAdvanced && trades.length > 3 && (
               <div className="text-center py-2">
                 <Link href="/pricing" className="text-xs text-primary hover:underline">Upgrade to Pro for full trade history</Link>
               </div>

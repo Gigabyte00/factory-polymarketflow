@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { getWatchlistItemLimit, getWatchlistLimit, isStarter } from "@/lib/entitlements";
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -40,14 +41,16 @@ export async function POST(request: Request) {
 
   // Check tier limits
   const { data: profile } = await db.from("users").select("tier").eq("id", user.id).single();
-  const isPro = profile?.tier === "pro";
+  const hasStarter = isStarter(profile);
+  const wlLimit = getWatchlistLimit(profile);
+  const itemLimit = getWatchlistItemLimit(profile);
 
   if (body.action === "create_watchlist") {
     // Free: max 2, Pro: unlimited
-    if (!isPro) {
+    if (!hasStarter && wlLimit !== null) {
       const { count } = await db.from("watchlists").select("id", { count: "exact", head: true }).eq("user_id", user.id);
-      if ((count || 0) >= 2) {
-        return NextResponse.json({ error: "Free plan limited to 2 watchlists. Upgrade to Pro for unlimited.", limit: 2 }, { status: 403 });
+      if ((count || 0) >= wlLimit) {
+        return NextResponse.json({ error: `Free plan limited to ${wlLimit} watchlists. Upgrade to Starter for unlimited.`, limit: wlLimit }, { status: 403 });
       }
     }
     const { data, error } = await db.from("watchlists").insert({ user_id: user.id, name: body.name || "My Watchlist" }).select().single();
@@ -56,21 +59,41 @@ export async function POST(request: Request) {
   }
 
   if (body.action === "add_item") {
-    if (!body.watchlist_id || !body.event_id) {
-      return NextResponse.json({ error: "watchlist_id and event_id required" }, { status: 400 });
+    if (!body.event_id) {
+      return NextResponse.json({ error: "event_id required" }, { status: 400 });
     }
-    // Verify watchlist belongs to user
-    const { data: wl } = await db.from("watchlists").select("id").eq("id", body.watchlist_id).eq("user_id", user.id).single();
+
+    let watchlistId = body.watchlist_id;
+    let wl = null;
+    if (watchlistId) {
+      const res = await db.from("watchlists").select("id").eq("id", watchlistId).eq("user_id", user.id).single();
+      wl = res.data;
+    } else {
+      const existing = await db.from("watchlists").select("id").eq("user_id", user.id).order("created_at", { ascending: true }).limit(1).single();
+      wl = existing.data;
+      if (!wl) {
+        if (!hasStarter && wlLimit !== null) {
+          const { count } = await db.from("watchlists").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+          if ((count || 0) >= wlLimit) {
+            return NextResponse.json({ error: `Free plan limited to ${wlLimit} watchlists. Upgrade to Starter for unlimited.`, limit: wlLimit }, { status: 403 });
+          }
+        }
+        const created = await db.from("watchlists").insert({ user_id: user.id, name: "My Watchlist" }).select().single();
+        wl = created.data;
+      }
+      watchlistId = wl?.id;
+    }
+
     if (!wl) return NextResponse.json({ error: "Watchlist not found" }, { status: 404 });
 
-    // Free: max 10 items, Pro: unlimited
-    if (!isPro) {
-      const { count } = await db.from("watchlist_items").select("id", { count: "exact", head: true }).eq("watchlist_id", body.watchlist_id);
-      if ((count || 0) >= 10) {
-        return NextResponse.json({ error: "Free plan limited to 10 items per watchlist. Upgrade to Pro.", limit: 10 }, { status: 403 });
+    // Free: max 10 items, Starter/Pro: unlimited
+    if (!hasStarter && itemLimit !== null) {
+      const { count } = await db.from("watchlist_items").select("id", { count: "exact", head: true }).eq("watchlist_id", watchlistId);
+      if ((count || 0) >= itemLimit) {
+        return NextResponse.json({ error: `Free plan limited to ${itemLimit} items per watchlist. Upgrade to Starter.`, limit: itemLimit }, { status: 403 });
       }
     }
-    const { data, error } = await db.from("watchlist_items").upsert({ watchlist_id: body.watchlist_id, event_id: body.event_id }, { onConflict: "watchlist_id,event_id" }).select().single();
+    const { data, error } = await db.from("watchlist_items").upsert({ watchlist_id: watchlistId, event_id: body.event_id }, { onConflict: "watchlist_id,event_id" }).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json(data, { status: 201 });
   }

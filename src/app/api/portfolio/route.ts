@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { canAccessAdvancedPortfolio, canAccessPortfolio } from "@/lib/entitlements";
 
 const DATA_BASE = "https://data-api.polymarket.com";
 
@@ -27,7 +28,12 @@ export async function GET() {
     return NextResponse.json({ error: "No wallet connected. Add your Polymarket wallet address in Settings.", wallet: null }, { status: 400 });
   }
 
-  const isPro = profile.tier === "pro";
+  const hasPortfolio = canAccessPortfolio(profile);
+  const hasAdvanced = canAccessAdvancedPortfolio(profile);
+
+  if (!hasPortfolio) {
+    return NextResponse.json({ error: "Portfolio tracker is available on Starter and Pro." }, { status: 403 });
+  }
 
   try {
     // Fetch positions from Polymarket Data API
@@ -61,9 +67,9 @@ export async function GET() {
         open_positions: openPositions,
         win_rate: null, // Would need resolved positions to calculate
       },
-      positions: isPro ? positionList.slice(0, 50) : positionList.slice(0, 5),
-      recent_trades: isPro ? trades.slice(0, 20) : trades.slice(0, 3),
-      limited: !isPro,
+      positions: hasAdvanced ? positionList.slice(0, 50) : positionList.slice(0, 5),
+      recent_trades: hasAdvanced ? trades.slice(0, 20) : trades.slice(0, 3),
+      limited: !hasAdvanced,
     });
   } catch (err: any) {
     return NextResponse.json({ error: `Failed to fetch portfolio: ${err.message}` }, { status: 500 });
