@@ -24,11 +24,17 @@ export async function getTickerData(): Promise<{ label: string; price: string; c
 
     if (!markets || markets.length === 0) return [];
 
-    // Filter to markets with meaningful prices (between 3% and 97%)
+    // Filter: meaningful prices (10-90%), deduplicate by event title
+    const seen = new Set<string>();
     return markets
       .filter((m: any) => {
         const p = m.outcome_prices?.[0] || 0.5;
-        return p > 0.03 && p < 0.97;
+        if (p <= 0.10 || p >= 0.90) return false;
+        const title = (m as any).events?.title || m.question || "";
+        const key = title.substring(0, 20);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
       })
       .slice(0, 8)
       .map((m: any) => {
@@ -66,10 +72,16 @@ export async function getHeroMarkets(): Promise<{ label: string; price: string; 
 
     if (!markets || markets.length === 0) return [];
 
+    const seenHero = new Set<string>();
     return markets
       .filter((m: any) => {
         const p = m.outcome_prices?.[0] || 0.5;
-        return p > 0.03 && p < 0.97;
+        if (p <= 0.10 || p >= 0.90) return false;
+        const title = (m as any).events?.title || m.question || "";
+        const key = title.substring(0, 20);
+        if (seenHero.has(key)) return false;
+        seenHero.add(key);
+        return true;
       })
       .slice(0, 5)
       .map((m: any) => {
