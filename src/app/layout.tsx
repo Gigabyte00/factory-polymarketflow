@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Footer } from "@/components/layout/footer";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { BackToTop } from "@/components/ui/back-to-top";
 import { OrganizationSchema, WebSiteSchema, SoftwareAppSchema } from "@/components/structured-data";
 
 const inter = Inter({
@@ -118,6 +119,8 @@ export default async function RootLayout({
           <main className="flex-1 overflow-auto" role="main">{children}</main>
         </div>
         <Footer />
+
+        <BackToTop />
 
         {/* Vercel Analytics */}
         <Analytics />

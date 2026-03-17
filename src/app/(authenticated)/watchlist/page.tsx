@@ -70,12 +70,14 @@ export default async function WatchlistPage() {
           ))}
         </div>
       ) : (
-        <div className="terminal-card p-12 text-center">
-          <Star className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+        <div className="terminal-card p-16 text-center max-w-md mx-auto">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <Star className="h-8 w-8 text-primary" />
+          </div>
           <h2 className="text-lg font-semibold mb-2">No watchlists yet</h2>
-          <p className="text-sm text-muted-foreground mb-4">Create your first watchlist to track markets you care about.</p>
-          <p className="text-xs text-muted-foreground">{hasStarter ? "Unlimited watchlists with Starter/Pro" : `Free plan: ${wlLimit} watchlists, ${itemLimit} markets each`}</p>
-          <Link href="/markets" className="inline-block mt-4 text-sm text-primary hover:underline">Browse Markets</Link>
+          <p className="text-sm text-muted-foreground mb-2">Track the markets you care about. Add markets from the explorer or market detail pages.</p>
+          <p className="text-xs text-muted-foreground mb-6">{hasStarter ? "Unlimited watchlists with Starter/Pro" : `Free plan: ${wlLimit} watchlists, ${itemLimit} markets each`}</p>
+          <Link href="/markets" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors">Browse Markets</Link>
         </div>
       )}
     </div>
