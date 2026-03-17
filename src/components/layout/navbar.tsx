@@ -74,27 +74,30 @@ const mobileMenuSections = [
   },
 ];
 
-export function Navbar() {
+interface NavbarProps {
+  tickerData?: { label: string; price: string; change: number }[];
+}
+
+export function Navbar({ tickerData }: NavbarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const ticker = tickerData && tickerData.length > 0 ? tickerData : [
+    { label: "Loading markets...", price: "—", change: 0 },
+  ];
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* Live market ticker */}
       <div className="border-b border-border bg-card/50 overflow-hidden">
         <div className="flex items-center h-8 animate-ticker-scroll whitespace-nowrap">
-          <TickerItem label="BTC $100K" price="65%" change={2.1} />
-          <TickerItem label="Fed Rate Cut" price="42%" change={-1.3} />
-          <TickerItem label="Trump 2028" price="28%" change={0.5} />
-          <TickerItem label="ETH $10K" price="18%" change={-0.8} />
-          <TickerItem label="AI Singularity" price="12%" change={3.2} />
-          <TickerItem label="Mars Landing" price="8%" change={0.0} />
-          <TickerItem label="BTC $100K" price="65%" change={2.1} />
-          <TickerItem label="Fed Rate Cut" price="42%" change={-1.3} />
-          <TickerItem label="Trump 2028" price="28%" change={0.5} />
-          <TickerItem label="ETH $10K" price="18%" change={-0.8} />
-          <TickerItem label="AI Singularity" price="12%" change={3.2} />
-          <TickerItem label="Mars Landing" price="8%" change={0.0} />
+          {ticker.map((t, i) => (
+            <TickerItem key={i} label={t.label} price={t.price} change={t.change} />
+          ))}
+          {/* Duplicate for seamless scroll */}
+          {ticker.map((t, i) => (
+            <TickerItem key={`dup-${i}`} label={t.label} price={t.price} change={t.change} />
+          ))}
         </div>
       </div>
 

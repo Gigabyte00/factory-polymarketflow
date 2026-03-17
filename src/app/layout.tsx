@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
+import { getTickerData } from "@/components/layout/live-ticker";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Footer } from "@/components/layout/footer";
 import { Analytics } from "@vercel/analytics/react";
@@ -75,11 +76,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const tickerData = await getTickerData();
+
   return (
     <html lang="en" className="dark">
       <head>
@@ -109,7 +112,7 @@ export default function RootLayout({
         <OrganizationSchema />
         <WebSiteSchema />
         <SoftwareAppSchema />
-        <Navbar />
+        <Navbar tickerData={tickerData} />
         <div className="flex flex-1" role="presentation">
           <Sidebar />
           <main className="flex-1 overflow-auto" role="main">{children}</main>

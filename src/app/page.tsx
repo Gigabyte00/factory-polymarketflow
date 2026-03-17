@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { ActivityFeed } from "@/components/feed/activity-feed";
 import { SentimentGauge } from "@/components/feed/sentiment-gauge";
+import { getHeroMarkets } from "@/components/layout/live-ticker";
 
 function ActivityFeedWrapper() {
   return (
@@ -22,7 +23,9 @@ function ActivityFeedWrapper() {
   );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const heroMarkets = await getHeroMarkets();
+
   return (
     <div className="grid-bg">
       {/* Hero Section */}
@@ -62,18 +65,18 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Product mockup — simulated screener preview */}
+          {/* Product mockup — live market data */}
           <div className="max-w-4xl mx-auto terminal-card p-4 sm:p-6 border-primary/20 relative">
             <div className="absolute -top-3 left-4 px-2 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold">LIVE DATA</div>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 text-center">
-              {[
-                { label: "Fed Decision", price: "67%", change: "+3.2%" },
-                { label: "BTC $100K", price: "42%", change: "-1.8%" },
-                { label: "Trump 2028", price: "28%", change: "+0.5%" },
-                { label: "Recession 2026", price: "31%", change: "+2.1%" },
-                { label: "AI Singularity", price: "12%", change: "+4.5%" },
-              ].map((m) => (
-                <div key={m.label} className="p-2 rounded-lg bg-muted/30">
+              {(heroMarkets.length > 0 ? heroMarkets : [
+                { label: "Loading...", price: "—", change: "" },
+                { label: "Loading...", price: "—", change: "" },
+                { label: "Loading...", price: "—", change: "" },
+                { label: "Loading...", price: "—", change: "" },
+                { label: "Loading...", price: "—", change: "" },
+              ]).map((m, i) => (
+                <div key={i} className="p-2 rounded-lg bg-muted/30">
                   <p className="text-[10px] text-muted-foreground truncate">{m.label}</p>
                   <p className="text-lg font-mono font-bold text-foreground">{m.price}</p>
                   <p className={`text-[10px] font-mono ${m.change.startsWith("+") ? "text-profit" : "text-loss"}`}>{m.change}</p>
