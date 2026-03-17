@@ -16,23 +16,31 @@ export async function getTickerData(): Promise<{ label: string; price: string; c
       .from("markets")
       .select("question, outcome_prices, one_day_price_change, volume_24h, events!inner(title)")
       .eq("active", true)
+      .eq("closed", false)
       .not("one_day_price_change", "is", null)
+      .gt("volume_24h", 100)
       .order("volume_24h", { ascending: false, nullsFirst: false })
-      .limit(8);
+      .limit(20);
 
     if (!markets || markets.length === 0) return [];
 
-    return markets.map((m: any) => {
-      const price = ((m.outcome_prices?.[0] || 0.5) * 100).toFixed(0);
-      const title = (m as any).events?.title || m.question || "Market";
-      // Truncate to ~20 chars
-      const label = title.length > 22 ? title.substring(0, 20) + "..." : title;
-      return {
-        label,
-        price: `${price}%`,
-        change: m.one_day_price_change || 0,
-      };
-    });
+    // Filter to markets with meaningful prices (between 3% and 97%)
+    return markets
+      .filter((m: any) => {
+        const p = m.outcome_prices?.[0] || 0.5;
+        return p > 0.03 && p < 0.97;
+      })
+      .slice(0, 8)
+      .map((m: any) => {
+        const price = ((m.outcome_prices?.[0] || 0.5) * 100).toFixed(0);
+        const title = (m as any).events?.title || m.question || "Market";
+        const label = title.length > 22 ? title.substring(0, 20) + "..." : title;
+        return {
+          label,
+          price: `${price}%`,
+          change: m.one_day_price_change || 0,
+        };
+      });
   } catch {
     return [];
   }
@@ -50,23 +58,31 @@ export async function getHeroMarkets(): Promise<{ label: string; price: string; 
       .from("markets")
       .select("question, outcome_prices, one_day_price_change, volume_24h, events!inner(title)")
       .eq("active", true)
+      .eq("closed", false)
       .not("one_day_price_change", "is", null)
+      .gt("volume_24h", 100)
       .order("volume_24h", { ascending: false, nullsFirst: false })
-      .limit(5);
+      .limit(15);
 
     if (!markets || markets.length === 0) return [];
 
-    return markets.map((m: any) => {
-      const price = ((m.outcome_prices?.[0] || 0.5) * 100).toFixed(0);
-      const change = m.one_day_price_change || 0;
-      const title = (m as any).events?.title || m.question || "Market";
-      const label = title.length > 25 ? title.substring(0, 23) + "..." : title;
-      return {
-        label,
-        price: `${price}%`,
-        change: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`,
-      };
-    });
+    return markets
+      .filter((m: any) => {
+        const p = m.outcome_prices?.[0] || 0.5;
+        return p > 0.03 && p < 0.97;
+      })
+      .slice(0, 5)
+      .map((m: any) => {
+        const price = ((m.outcome_prices?.[0] || 0.5) * 100).toFixed(0);
+        const change = m.one_day_price_change || 0;
+        const title = (m as any).events?.title || m.question || "Market";
+        const label = title.length > 25 ? title.substring(0, 23) + "..." : title;
+        return {
+          label,
+          price: `${price}%`,
+          change: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`,
+        };
+      });
   } catch {
     return [];
   }
