@@ -1,16 +1,27 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
   BarChart3,
   Bell,
-  ChevronDown,
+  BookOpen,
+  CreditCard,
+  Filter,
+  Globe,
   LayoutDashboard,
+  LineChart,
+  Menu,
   Search,
+  Settings,
+  Star,
   TrendingUp,
   Trophy,
+  Users,
+  Wallet,
+  X,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,8 +32,51 @@ const navLinks = [
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 
+const mobileMenuSections = [
+  {
+    title: "Explore",
+    links: [
+      { href: "/markets", label: "All Markets", icon: LayoutDashboard },
+      { href: "/flow", label: "Flow", icon: Activity },
+      { href: "/screener", label: "Screener", icon: Filter },
+      { href: "/movers", label: "Market Movers", icon: TrendingUp },
+      { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+    ],
+  },
+  {
+    title: "Categories",
+    links: [
+      { href: "/predictions/politics", label: "Politics", icon: Globe },
+      { href: "/predictions/crypto", label: "Crypto", icon: LineChart },
+      { href: "/predictions/sports", label: "Sports", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "Pro",
+    links: [
+      { href: "/flow", label: "Flow Feed", icon: Activity },
+      { href: "/whales", label: "Whale Tracker", icon: Users },
+      { href: "/alerts", label: "Price Alerts", icon: Bell },
+      { href: "/watchlist", label: "Watchlist", icon: Star },
+      { href: "/portfolio", label: "Portfolio", icon: Wallet },
+      { href: "/briefings", label: "AI Briefings", icon: Zap },
+    ],
+  },
+  {
+    title: "More",
+    links: [
+      { href: "/whale-tracker", label: "Whale Tracker", icon: Users },
+      { href: "/tools", label: "Free Tools", icon: BarChart3 },
+      { href: "/blog", label: "Blog", icon: BookOpen },
+      { href: "/pricing", label: "Pricing", icon: CreditCard },
+      { href: "/settings", label: "Settings", icon: Settings },
+    ],
+  },
+];
+
 export function Navbar() {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -35,7 +89,6 @@ export function Navbar() {
           <TickerItem label="ETH $10K" price="18%" change={-0.8} />
           <TickerItem label="AI Singularity" price="12%" change={3.2} />
           <TickerItem label="Mars Landing" price="8%" change={0.0} />
-          {/* Duplicate for seamless scroll */}
           <TickerItem label="BTC $100K" price="65%" change={2.1} />
           <TickerItem label="Fed Rate Cut" price="42%" change={-1.3} />
           <TickerItem label="Trump 2028" price="28%" change={0.5} />
@@ -47,8 +100,17 @@ export function Navbar() {
 
       {/* Main nav */}
       <div className="flex items-center h-14 px-4 max-w-screen-2xl mx-auto">
+        {/* Mobile menu button */}
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="lg:hidden mr-3 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          aria-label="Toggle navigation menu"
+        >
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 mr-8">
+        <Link href="/" className="flex items-center gap-2 mr-8" aria-label="PolymarketFlow home">
           <Activity className="h-6 w-6 text-primary" />
           <span className="font-bold text-lg tracking-tight">
             <span className="text-primary">Polymarket</span>
@@ -56,8 +118,8 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Nav links */}
-        <nav className="hidden md:flex items-center gap-1">
+        {/* Desktop nav links */}
+        <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
           {navLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href;
@@ -80,57 +142,76 @@ export function Navbar() {
         </nav>
 
         {/* Right side */}
-        <div className="ml-auto flex items-center gap-3">
-          {/* Search */}
-          <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors">
+        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          <Link
+            href="/markets?q="
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+            aria-label="Search markets"
+          >
             <Search className="h-4 w-4" />
-            <span className="hidden sm:inline">Search markets...</span>
-            <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground">
-              /
-            </kbd>
-          </button>
+            <span className="hidden sm:inline">Search...</span>
+          </Link>
 
-          {/* Alerts */}
-          <button className="relative p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+          <Link href="/alerts" className="relative p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" aria-label="Price alerts">
             <Bell className="h-5 w-5" />
             <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary animate-pulse-glow" />
-          </button>
+          </Link>
 
-          {/* Sign in / Pro badge */}
           <Link
             href="/auth"
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
           >
             <Zap className="h-4 w-4" />
-            Sign In
+            <span className="hidden sm:inline">Sign In</span>
           </Link>
         </div>
       </div>
+
+      {/* Mobile menu drawer */}
+      {mobileOpen && (
+        <div className="lg:hidden border-t border-border bg-background/98 backdrop-blur max-h-[70vh] overflow-y-auto">
+          <nav className="px-4 py-3 space-y-4" aria-label="Mobile navigation">
+            {mobileMenuSections.map((section) => (
+              <div key={section.title}>
+                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 px-2">{section.title}</h3>
+                <div className="space-y-0.5">
+                  {section.links.map((link) => {
+                    const Icon = link.icon;
+                    const isActive = pathname === link.href;
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={cn(
+                          "flex items-center gap-2.5 px-2 py-2 rounded-md text-sm transition-colors",
+                          isActive
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        )}
+                      >
+                        <Icon className="h-4 w-4 flex-shrink-0" />
+                        {link.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
 
-function TickerItem({
-  label,
-  price,
-  change,
-}: {
-  label: string;
-  price: string;
-  change: number;
-}) {
+function TickerItem({ label, price, change }: { label: string; price: string; change: number }) {
   return (
     <div className="inline-flex items-center gap-2 px-4 text-xs">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-mono font-semibold text-foreground">{price}</span>
-      <span
-        className={cn(
-          "font-mono",
-          change > 0 ? "text-profit" : change < 0 ? "text-loss" : "text-muted-foreground"
-        )}
-      >
-        {change > 0 ? "+" : ""}
-        {change.toFixed(1)}%
+      <span className={cn("font-mono", change > 0 ? "text-profit" : change < 0 ? "text-loss" : "text-muted-foreground")}>
+        {change > 0 ? "+" : ""}{change.toFixed(1)}%
       </span>
       <span className="text-border mx-2">|</span>
     </div>

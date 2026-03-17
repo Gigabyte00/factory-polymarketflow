@@ -110,9 +110,9 @@ export default function RootLayout({
         <WebSiteSchema />
         <SoftwareAppSchema />
         <Navbar />
-        <div className="flex flex-1">
+        <div className="flex flex-1" role="presentation">
           <Sidebar />
-          <main className="flex-1 overflow-auto">{children}</main>
+          <main className="flex-1 overflow-auto" role="main">{children}</main>
         </div>
         <Footer />
 

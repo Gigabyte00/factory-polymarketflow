@@ -26,47 +26,69 @@ export default function HomePage() {
   return (
     <div className="grid-bg">
       {/* Hero Section */}
-      <section className="relative py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
+      <section className="relative py-16 sm:py-20 px-4 overflow-hidden">
+        {/* Background glow effect */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+
+        <div className="max-w-5xl mx-auto text-center relative">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-sm font-medium mb-6">
-            <Activity className="h-4 w-4" />
-            Tracking $2B+ in prediction market volume
+            <Activity className="h-4 w-4" aria-hidden="true" />
+            Real-time prediction market intelligence
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-            <span className="text-foreground">Prediction Market</span>
+            <span className="text-foreground">Track Smart Money on</span>
             <br />
-            <span className="text-primary glow-green">Intelligence</span>
+            <span className="text-primary glow-green">Polymarket</span>
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-            Track every market on Polymarket. Follow whale wallets. Get instant
-            alerts when prices move. AI-powered analysis delivered to your inbox.
+            Whale tracking, price alerts, market screener, and AI-powered analysis for prediction market traders. See what smart money is doing before prices move.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Link
-              href="/markets"
+              href="/alerts-feed"
               className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
             >
-              Explore Markets
+              See Whale Alerts
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/pricing"
+              href="/markets"
               className="flex items-center gap-2 px-6 py-3 rounded-lg border border-border text-foreground font-semibold hover:bg-accent transition-colors"
             >
-              View Pricing
+              Explore Markets
             </Link>
+          </div>
+
+          {/* Product mockup — simulated screener preview */}
+          <div className="max-w-4xl mx-auto terminal-card p-4 sm:p-6 border-primary/20 relative">
+            <div className="absolute -top-3 left-4 px-2 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold">LIVE DATA</div>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 text-center">
+              {[
+                { label: "Fed Decision", price: "67%", change: "+3.2%" },
+                { label: "BTC $100K", price: "42%", change: "-1.8%" },
+                { label: "Trump 2028", price: "28%", change: "+0.5%" },
+                { label: "Recession 2026", price: "31%", change: "+2.1%" },
+                { label: "AI Singularity", price: "12%", change: "+4.5%" },
+              ].map((m) => (
+                <div key={m.label} className="p-2 rounded-lg bg-muted/30">
+                  <p className="text-[10px] text-muted-foreground truncate">{m.label}</p>
+                  <p className="text-lg font-mono font-bold text-foreground">{m.price}</p>
+                  <p className={`text-[10px] font-mono ${m.change.startsWith("+") ? "text-profit" : "text-loss"}`}>{m.change}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Stats bar */}
-        <div className="max-w-3xl mx-auto mt-16 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard label="Active Markets" value="1,200+" />
-          <StatCard label="24h Volume" value="$84M" />
-          <StatCard label="Tracked Whales" value="500+" />
-          <StatCard label="Alerts Sent" value="12K+" />
+        {/* Social proof + live stats */}
+        <div className="max-w-4xl mx-auto mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <StatCard label="Markets Tracked" value="14,700+" />
+          <StatCard label="Price Data Points" value="265K+" />
+          <StatCard label="Whale Wallets" value="2,600+" />
+          <StatCard label="Updated Every" value="5 min" />
         </div>
       </section>
 
@@ -78,11 +100,14 @@ export default function HomePage() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-16 px-4 border-t border-border">
+      <section className="py-16 px-4 border-t border-border bg-card/30">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl font-bold text-center mb-12">
+          <h2 className="text-2xl font-bold text-center mb-3">
             Everything you need to trade smarter
           </h2>
+          <p className="text-muted-foreground text-center max-w-xl mx-auto mb-12 text-sm">
+            Professional-grade tools for prediction market traders, from whale tracking to AI-powered analysis.
+          </p>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <FeatureCard
@@ -126,7 +151,7 @@ export default function HomePage() {
       </section>
 
       {/* Pricing Preview */}
-      <section className="py-16 px-4 border-t border-border bg-card/30">
+      <section className="py-16 px-4 border-t border-border">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl font-bold mb-4">Simple, transparent pricing</h2>
           <p className="text-muted-foreground mb-12">
