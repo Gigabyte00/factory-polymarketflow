@@ -18,18 +18,17 @@ export async function getTickerData(): Promise<{ label: string; price: string; c
       .eq("active", true)
       .eq("closed", false)
       .not("one_day_price_change", "is", null)
-      .gt("volume_24h", 100)
       .order("volume_24h", { ascending: false, nullsFirst: false })
-      .limit(20);
+      .limit(80);
 
     if (!markets || markets.length === 0) return [];
 
-    // Filter: meaningful prices (10-90%), deduplicate by event title
+    // Filter: meaningful prices (5-95%), deduplicate by event title
     const seen = new Set<string>();
     return markets
       .filter((m: any) => {
         const p = m.outcome_prices?.[0] || 0.5;
-        if (p <= 0.10 || p >= 0.90) return false;
+        if (p <= 0.05 || p >= 0.95) return false;
         const title = (m as any).events?.title || m.question || "";
         const key = title.substring(0, 20);
         if (seen.has(key)) return false;
@@ -66,9 +65,8 @@ export async function getHeroMarkets(): Promise<{ label: string; price: string; 
       .eq("active", true)
       .eq("closed", false)
       .not("one_day_price_change", "is", null)
-      .gt("volume_24h", 100)
       .order("volume_24h", { ascending: false, nullsFirst: false })
-      .limit(15);
+      .limit(60);
 
     if (!markets || markets.length === 0) return [];
 
@@ -76,7 +74,7 @@ export async function getHeroMarkets(): Promise<{ label: string; price: string; 
     return markets
       .filter((m: any) => {
         const p = m.outcome_prices?.[0] || 0.5;
-        if (p <= 0.10 || p >= 0.90) return false;
+        if (p <= 0.05 || p >= 0.95) return false;
         const title = (m as any).events?.title || m.question || "";
         const key = title.substring(0, 20);
         if (seenHero.has(key)) return false;
