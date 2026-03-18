@@ -443,7 +443,158 @@ export async function POST(request: Request) {
     }
   }
 
-  // ============ TASK 5: Compute Smart Money Labels ============
+  // ============ TASK 5a: Ingest Recent Trades ============
+  if (tasks.includes("trades")) {
+    try {
+      // Get top 20 markets by volume to fetch trades for
+      const { data: topMarkets } = await pmflow
+        .from("markets")
+        .select("id, condition_id")
+        .eq("active", true)
+        .order("volume_24h", { ascending: false, nullsFirst: false })
+        .limit(20);
+
+      let tradeCount = 0;
+      if (topMarkets) {
+        for (const market of topMarkets) {
+          try {
+            const res = await fetch(`${DATA_BASE}/trades?market=${market.condition_id}&limit=20`);
+            if (!res.ok) continue;
+            const trades = await res.json();
+            if (!Array.isArray(trades) || trades.length === 0) continue;
+
+            const rows = trades.map((t: any) => ({
+              id: t.id || `${t.market}-${t.match_time}-${t.size}`,
+              market_id: market.id,
+              condition_id: market.condition_id,
+              asset_id: t.asset_id || "",
+              side: t.side || "BUY",
+              size: parseFloat(t.size || "0"),
+              price: parseFloat(t.price || "0"),
+              fee_rate_bps: t.fee_rate_bps || "",
+              outcome: t.outcome || "",
+              maker_address: t.maker_address || "",
+              taker_address: t.owner || "",
+              transaction_hash: t.transaction_hash || "",
+              match_time: t.match_time || new Date().toISOString(),
+            }));
+
+            for (let i = 0; i < rows.length; i += 50) {
+              const batch = rows.slice(i, i + 50);
+              await pmflow.from("trades").upsert(batch, { onConflict: "id", ignoreDuplicates: true });
+            }
+            tradeCount += rows.length;
+          } catch { /* skip individual market failures */ }
+        }
+      }
+      results.trades = { success: true, count: tradeCount };
+    } catch (err: any) {
+      results.trades = { success: false, error: err.message };
+    }
+  }
+
+  // ============ TASK 5b: Detect Whale Activity ============
+  if (tasks.includes("whale_activity")) {
+    let activityCount = 0;
+    try {
+      // Compare latest holder snapshots with previous ones to detect entries/exits
+      const { data: snapshots } = await pmflow
+        .from("top_holders")
+        .select("snapshot_at")
+        .order("snapshot_at", { ascending: false })
+        .limit(1);
+
+      if (snapshots && snapshots.length > 0) {
+        const latestTime = snapshots[0].snapshot_at;
+        const cutoff = new Date(new Date(latestTime).getTime() - 3600000).toISOString(); // 1 hour ago
+
+        // Get current positions
+        const { data: currentPositions } = await pmflow
+          .from("top_holders")
+          .select("wallet_address, market_id, amount, outcome_index")
+          .gte("snapshot_at", cutoff)
+          .gt("amount", 5000);
+
+        // Get previous positions (1-2 hours ago)
+        const prevCutoffStart = new Date(new Date(latestTime).getTime() - 7200000).toISOString();
+        const { data: prevPositions } = await pmflow
+          .from("top_holders")
+          .select("wallet_address, market_id, amount")
+          .gte("snapshot_at", prevCutoffStart)
+          .lt("snapshot_at", cutoff)
+          .gt("amount", 5000);
+
+        // Build maps
+        const prevMap: Record<string, number> = {};
+        for (const p of prevPositions || []) {
+          prevMap[`${p.wallet_address}-${p.market_id}`] = p.amount;
+        }
+
+        let activityCount = 0;
+        const activities: any[] = [];
+
+        for (const curr of currentPositions || []) {
+          const key = `${curr.wallet_address}-${curr.market_id}`;
+          const prevAmount = prevMap[key];
+
+          let action: string | null = null;
+          if (prevAmount === undefined && curr.amount > 10000) {
+            action = "ENTER";
+          } else if (prevAmount !== undefined) {
+            const change = curr.amount - prevAmount;
+            if (change > 5000) action = "INCREASE";
+            else if (change < -5000) action = "DECREASE";
+          }
+
+          if (action) {
+            activities.push({
+              wallet_address: curr.wallet_address,
+              market_id: curr.market_id,
+              action,
+              side: curr.outcome_index === 0 ? "YES" : "NO",
+              amount: curr.amount,
+              previous_amount: prevAmount || 0,
+              detected_at: new Date().toISOString(),
+            });
+          }
+        }
+
+        // Check for exits (was in prev but not in current)
+        const currMap: Record<string, boolean> = {};
+        for (const c of currentPositions || []) {
+          currMap[`${c.wallet_address}-${c.market_id}`] = true;
+        }
+        for (const p of prevPositions || []) {
+          const key = `${p.wallet_address}-${p.market_id}`;
+          if (!currMap[key] && p.amount > 10000) {
+            activities.push({
+              wallet_address: p.wallet_address,
+              market_id: p.market_id,
+              action: "EXIT",
+              side: "YES",
+              amount: 0,
+              previous_amount: p.amount,
+              detected_at: new Date().toISOString(),
+            });
+          }
+        }
+
+        // Insert whale activity
+        if (activities.length > 0) {
+          for (let i = 0; i < activities.length; i += 50) {
+            await pmflow.from("whale_activity").insert(activities.slice(i, i + 50));
+          }
+          activityCount = activities.length;
+        }
+      }
+
+      results.whale_activity = { success: true, count: activityCount };
+    } catch (err: any) {
+      results.whale_activity = { success: false, error: err.message };
+    }
+  }
+
+  // ============ TASK 6: Compute Smart Money Labels ============
   if (tasks.includes("smart_money")) {
     try {
       // Compute markets traded + avg position from top_holders

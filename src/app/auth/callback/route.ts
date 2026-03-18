@@ -87,6 +87,46 @@ export async function GET(request: Request) {
               { onConflict: "referred_email" }
             );
         }
+
+        // Onboarding: auto-create default watchlist with top markets
+        try {
+          const { data: existingWl } = await serviceClient
+            .schema("pmflow")
+            .from("watchlists")
+            .select("id")
+            .eq("user_id", user.id)
+            .limit(1);
+
+          if (!existingWl || existingWl.length === 0) {
+            const { data: wl } = await serviceClient
+              .schema("pmflow")
+              .from("watchlists")
+              .insert({ user_id: user.id, name: "My Watchlist" })
+              .select("id")
+              .single();
+
+            if (wl) {
+              // Add top 5 markets by volume
+              const { data: topEvents } = await serviceClient
+                .schema("pmflow")
+                .from("events")
+                .select("id")
+                .eq("active", true)
+                .order("volume_24h", { ascending: false })
+                .limit(5);
+
+              if (topEvents) {
+                const items = topEvents.map((e: any) => ({
+                  watchlist_id: wl.id,
+                  event_id: e.id,
+                }));
+                await serviceClient.schema("pmflow").from("watchlist_items").insert(items);
+              }
+            }
+          }
+        } catch {
+          // Non-critical: don't fail auth if onboarding fails
+        }
       }
 
       const forwardedHost = request.headers.get("x-forwarded-host");
