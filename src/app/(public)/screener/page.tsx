@@ -4,6 +4,8 @@ import { cn, formatCompact, formatProbability } from "@/lib/utils";
 import Link from "next/link";
 import type { Metadata } from "next";
 
+export const revalidate = 300; // ISR: revalidate every 5 minutes
+
 export const metadata: Metadata = {
   title: "Market Screener",
   description: "Filter and screen 14,000+ prediction markets by volume, price, category, anomaly score, and more.",
@@ -23,6 +25,9 @@ export default async function ScreenerPage({
   const sortBy = (params.sort as string) || "volume_24h";
   const anomalyOnly = params.anomaly === "true";
 
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return <div className="p-6 text-center"><p className="text-muted-foreground">Loading screener...</p></div>;
+  }
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { db: { schema: "pmflow" } });
 
   let query = db

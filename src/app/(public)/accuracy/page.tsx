@@ -11,6 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default async function AccuracyPage() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return <div className="p-6 text-center"><p className="text-muted-foreground">Loading accuracy data...</p></div>;
+  }
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { db: { schema: "pmflow" } });
 
   // Get resolved (closed) markets for accuracy analysis

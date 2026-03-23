@@ -14,6 +14,24 @@ const PROTECTED_ROUTES = [
 ];
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Skip auth for public routes, API routes, and static files
+  const publicPaths = ['/api/', '/sitemap.xml', '/robots.txt', '/auth/', '/_next/'];
+  if (publicPaths.some(p => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
+
+  // Only call auth for protected routes — skip for all public-facing pages
+  const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
+    pathname === route || pathname.startsWith(route + "/")
+  );
+
+  // For non-protected routes, pass through without calling Supabase auth
+  if (!isProtectedRoute && pathname !== "/auth") {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -41,16 +59,10 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh the auth token
+  // Refresh the auth token — only reached for protected routes and /auth
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  // Check if the route is protected (exact match or subpath, not prefix match)
-  const pathname = request.nextUrl.pathname;
-  const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
-    pathname === route || pathname.startsWith(route + "/")
-  );
 
   if (isProtectedRoute && !user) {
     // Redirect to auth page with return URL

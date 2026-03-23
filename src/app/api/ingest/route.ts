@@ -43,6 +43,10 @@ function inferCategory(title: string | null, description: string | null, tags: a
  * Default: all tasks
  */
 export async function POST(request: Request) {
+  const startTime = Date.now();
+  function checkTimeout() {
+    if (Date.now() - startTime > 45000) throw new Error('Timeout guard: approaching 60s limit');
+  }
   // Auth check
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${INGEST_API_KEY}`) {
@@ -84,6 +88,7 @@ export async function POST(request: Request) {
   // ============ TASK 1: Sync Events + Markets ============
   if (tasks.includes("events")) {
     try {
+      checkTimeout();
       let allEvents: any[] = [];
       let offset = 0;
       const limit = 100;
@@ -201,17 +206,19 @@ export async function POST(request: Request) {
     }
   }
 
-  // ============ TASK 2: Capture Price Snapshots (top 500 markets) ============
+  // ============ TASK 2: Capture Price Snapshots (top 100 active markets) ============
   if (tasks.includes("prices")) {
     try {
-      // Get top 500 active markets by 24h volume with token IDs
+      checkTimeout();
+      // Get top 100 active markets by volume (>1000) with token IDs
       const { data: markets } = await pmflow
         .from("markets")
         .select("id, clob_token_ids")
         .eq("active", true)
+        .gt("volume", 1000)
         .not("clob_token_ids", "is", null)
         .order("volume_24h", { ascending: false, nullsFirst: false })
-        .limit(500);
+        .limit(100);
 
       if (markets && markets.length > 0) {
         const now = new Date().toISOString();
@@ -268,14 +275,15 @@ export async function POST(request: Request) {
   // ============ TASK 2b: Backfill Price History ============
   if (tasks.includes("backfill")) {
     try {
-      // Get top 100 markets that don't have much price history yet
+      checkTimeout();
+      // Get top 50 markets that don't have much price history yet
       const { data: markets } = await pmflow
         .from("markets")
         .select("id, clob_token_ids")
         .eq("active", true)
         .not("clob_token_ids", "is", null)
         .order("volume_24h", { ascending: false, nullsFirst: false })
-        .limit(100);
+        .limit(50);
 
       let backfillCount = 0;
       if (markets) {
@@ -336,6 +344,7 @@ export async function POST(request: Request) {
   // ============ TASK 3: Sync Leaderboard ============
   if (tasks.includes("leaderboard")) {
     try {
+      checkTimeout();
       const categories = ["OVERALL", "POLITICS", "SPORTS", "CRYPTO"];
       const timePeriods = ["DAY", "WEEK", "MONTH", "ALL"];
       let totalCount = 0;
@@ -380,6 +389,7 @@ export async function POST(request: Request) {
   // ============ TASK 4: Sync Top Holders ============
   if (tasks.includes("holders")) {
     try {
+      checkTimeout();
       // Get top 50 markets by volume for holder tracking
       const { data: topMarkets } = await pmflow
         .from("markets")
@@ -446,6 +456,7 @@ export async function POST(request: Request) {
   // ============ TASK 5a: Ingest Recent Trades ============
   if (tasks.includes("trades")) {
     try {
+      checkTimeout();
       // Get top 20 markets by volume to fetch trades for
       const { data: topMarkets } = await pmflow
         .from("markets")
@@ -497,6 +508,7 @@ export async function POST(request: Request) {
   if (tasks.includes("whale_activity")) {
     let activityCount = 0;
     try {
+      checkTimeout();
       // Compare latest holder snapshots with previous ones to detect entries/exits
       const { data: snapshots } = await pmflow
         .from("top_holders")
@@ -597,10 +609,13 @@ export async function POST(request: Request) {
   // ============ TASK 6: Compute Smart Money Labels ============
   if (tasks.includes("smart_money")) {
     try {
-      // Compute markets traded + avg position from top_holders
+      checkTimeout();
+      // Compute markets traded + avg position from top_holders (recent snapshots only)
       const { data: holderStats } = await pmflow
         .from("top_holders")
-        .select("wallet_address, market_id, amount, snapshot_at");
+        .select("wallet_address, market_id, amount, snapshot_at")
+        .order("snapshot_at", { ascending: false })
+        .limit(5000);
 
       if (holderStats && holderStats.length > 0) {
         // Aggregate per wallet
@@ -617,13 +632,16 @@ export async function POST(request: Request) {
           if (h.snapshot_at && h.snapshot_at > w.lastSeen) w.lastSeen = h.snapshot_at;
         }
 
-        // Update whale_wallets with computed stats
-        for (const [addr, stats] of Object.entries(walletMap)) {
-          await pmflow.from("whale_wallets").update({
-            markets_traded: stats.markets.size,
-            avg_position_size: stats.count > 0 ? stats.totalAmount / stats.count : 0,
-            last_active_at: stats.lastSeen || null,
-          }).eq("wallet_address", addr);
+        // Batch update whale_wallets with computed stats
+        const walletUpdateRows = Object.entries(walletMap).map(([addr, stats]) => ({
+          wallet_address: addr,
+          markets_traded: stats.markets.size,
+          avg_position_size: stats.count > 0 ? stats.totalAmount / stats.count : 0,
+          last_active_at: stats.lastSeen || null,
+        }));
+        for (let i = 0; i < walletUpdateRows.length; i += 200) {
+          const batch = walletUpdateRows.slice(i, i + 200);
+          await pmflow.from("whale_wallets").upsert(batch, { onConflict: "wallet_address" });
         }
       }
 
@@ -639,7 +657,8 @@ export async function POST(request: Request) {
         const maxPnl = Math.max(...whales.map((w: any) => Math.abs(w.total_pnl || 0)), 1);
         const now = Date.now();
 
-        for (const whale of whales) {
+        // Compute scores for all whales, then batch upsert
+        const scoreRows = whales.map((whale: any) => {
           const volScore = Math.min(((whale.total_volume || 0) / maxVol) * 30, 30);
           const mktScore = Math.min(((whale.markets_traded || 0) / maxMarkets) * 30, 30);
           const pnlScore = whale.total_pnl > 0 ? Math.min((whale.total_pnl / maxPnl) * 20, 20) : 0;
@@ -649,7 +668,6 @@ export async function POST(request: Request) {
           const recencyScore = Math.max(20 - daysSinceActive, 0);
           const score = Math.round(volScore + mktScore + pnlScore + recencyScore);
 
-          // Determine strategy label
           let strategyLabel = "Diversified";
           const mktCount = whale.markets_traded || 0;
           const vol = whale.total_volume || 0;
@@ -659,10 +677,17 @@ export async function POST(request: Request) {
           else if (mktCount <= 2) strategyLabel = "Focused";
           else if (mktCount >= 5 && mktCount <= 10) strategyLabel = "Selective";
 
-          await pmflow
-            .from("whale_wallets")
-            .update({ smart_money_score: score, strategy_label: strategyLabel, consistency_score: Math.min(score + 10, 100) })
-            .eq("wallet_address", whale.wallet_address);
+          return {
+            wallet_address: whale.wallet_address,
+            smart_money_score: score,
+            strategy_label: strategyLabel,
+            consistency_score: Math.min(score + 10, 100),
+          };
+        });
+
+        for (let i = 0; i < scoreRows.length; i += 200) {
+          const batch = scoreRows.slice(i, i + 200);
+          await pmflow.from("whale_wallets").upsert(batch, { onConflict: "wallet_address" });
         }
       }
 
@@ -675,6 +700,7 @@ export async function POST(request: Request) {
   // ============ TASK 6: Anomaly Detection ============
   if (tasks.includes("anomaly")) {
     try {
+      checkTimeout();
       // Detect volume spikes: current 24h vol > 3x 7-day average
       const { data: markets } = await pmflow
         .from("markets")
@@ -684,6 +710,8 @@ export async function POST(request: Request) {
 
       let anomalyCount = 0;
       if (markets) {
+        checkTimeout();
+        const anomalyUpdates: any[] = [];
         for (const m of markets) {
           const vol24h = m.volume_24h || 0;
           const avg7d = m.volume_avg_7d || vol24h; // Default to current if no avg
@@ -693,16 +721,20 @@ export async function POST(request: Request) {
           const isSpike = spikeMultiplier > 3;
           const anomalyScore = Math.min(Math.round(spikeMultiplier * 10), 100);
 
-          await pmflow
-            .from("markets")
-            .update({
-              volume_avg_7d: newAvg,
-              volume_spike_detected: isSpike,
-              anomaly_score: isSpike ? anomalyScore : 0,
-            })
-            .eq("id", m.id);
+          anomalyUpdates.push({
+            id: m.id,
+            volume_avg_7d: newAvg,
+            volume_spike_detected: isSpike,
+            anomaly_score: isSpike ? anomalyScore : 0,
+          });
 
           if (isSpike) anomalyCount++;
+        }
+
+        // Batch upsert anomaly updates
+        for (let i = 0; i < anomalyUpdates.length; i += 200) {
+          const batch = anomalyUpdates.slice(i, i + 200);
+          await pmflow.from("markets").upsert(batch, { onConflict: "id" });
         }
       }
 

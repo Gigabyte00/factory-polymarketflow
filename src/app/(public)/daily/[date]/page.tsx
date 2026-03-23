@@ -4,7 +4,20 @@ import { cn, formatCompact, formatProbability } from "@/lib/utils";
 import Link from "next/link";
 import type { Metadata } from "next";
 
+export const revalidate = 3600; // ISR: revalidate every hour (daily snapshots are stable)
+
 type Props = { params: Promise<{ date: string }> };
+
+export async function generateStaticParams() {
+  // Pre-generate the last 7 days
+  const dates: { date: string }[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push({ date: d.toISOString().split("T")[0] });
+  }
+  return dates;
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { date } = await params;
@@ -18,6 +31,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function DailySnapshotPage({ params }: Props) {
   const { date } = await params;
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return <div className="p-6 text-center"><p className="text-muted-foreground">Loading daily snapshot...</p></div>;
+  }
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { db: { schema: "pmflow" } });
 
   const formatted = new Date(date + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });

@@ -29,6 +29,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+export const revalidate = 600; // ISR: revalidate every 10 minutes
+export const dynamicParams = true; // Allow dynamic params beyond the static list
+
 export function generateStaticParams() {
   return Object.keys(categoryMeta).map((category) => ({ category }));
 }
@@ -43,7 +46,12 @@ export default async function PredictionsCategoryPage({ params }: Props) {
   const Icon = meta.icon;
   // Map URL slugs to DB category names
   const dbCategory = category === "science-tech" ? "Science & Tech" : category.charAt(0).toUpperCase() + category.slice(1);
-  const events = await getEvents({ limit: 60, category: dbCategory });
+  let events: any[] = [];
+  try {
+    events = await getEvents({ limit: 60, category: dbCategory });
+  } catch {
+    events = [];
+  }
 
   return (
     <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">

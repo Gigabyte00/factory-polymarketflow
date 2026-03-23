@@ -4,6 +4,8 @@ import { formatCompact, truncateAddress, cn } from "@/lib/utils";
 import Link from "next/link";
 import type { Metadata } from "next";
 
+export const revalidate = 600; // ISR: revalidate every 10 minutes
+
 export const metadata: Metadata = {
   title: "Polymarket Whale Tracker - Follow Smart Money",
   description: "Track 1,900+ Polymarket whale wallets in real-time. Smart Money Scores, strategy labels, position tracking, and instant alerts when whales move.",
@@ -12,6 +14,9 @@ export const metadata: Metadata = {
 };
 
 export default async function WhaleTrackerLandingPage() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return <div className="p-6 text-center"><p className="text-muted-foreground">Loading whale tracker...</p></div>;
+  }
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { db: { schema: "pmflow" } });
 
   const { count: totalWhales } = await db.from("whale_wallets").select("wallet_address", { count: "exact", head: true });

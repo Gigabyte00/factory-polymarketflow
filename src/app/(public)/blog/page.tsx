@@ -9,9 +9,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/blog" },
 };
 
-export const revalidate = 300; // Revalidate every 5 min to pick up new posts
+export const revalidate = 3600; // Revalidate every hour (blog content is not time-sensitive)
 
 export default async function BlogPage() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return <div className="p-6 text-center"><p className="text-muted-foreground">Loading blog...</p></div>;
+  }
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { db: { schema: "pmflow" } });
 
   const { data: posts } = await db

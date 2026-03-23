@@ -36,19 +36,20 @@ export async function POST(request: Request) {
     results.sitemap = { error: err.message };
   }
 
-  // 2. Check key pages are accessible (simulate what Googlebot sees)
+  // 2. Check key pages are accessible using HEAD requests (avoids triggering SSR)
   const keyPages = ["/", "/markets", "/whale-tracker", "/tools", "/alerts-feed", "/screener", "/blog", "/predictions/politics"];
-  const pageChecks: Record<string, boolean> = {};
 
-  for (const page of keyPages) {
-    try {
-      const res = await fetch(`https://polymarketflow.com${page}`, {
-        headers: { "User-Agent": "PolymarketFlow-SEO-Check/1.0" },
-      });
-      pageChecks[page] = res.ok;
-    } catch {
-      pageChecks[page] = false;
-    }
+  const checks = await Promise.all(
+    keyPages.map(page =>
+      fetch(`https://polymarketflow.com${page}`, { method: "HEAD" })
+        .then(r => ({ page, status: r.status, ok: r.ok }))
+        .catch(e => ({ page, status: 0, ok: false, error: (e as Error).message }))
+    )
+  );
+
+  const pageChecks: Record<string, boolean> = {};
+  for (const c of checks) {
+    pageChecks[c.page] = c.ok;
   }
 
   results.page_checks = pageChecks;

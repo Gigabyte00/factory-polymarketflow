@@ -5,6 +5,8 @@ import { cn, formatCompact, formatProbability, truncateAddress, formatRelativeTi
 import Link from "next/link";
 import type { Metadata } from "next";
 
+export const revalidate = 300; // ISR: revalidate every 5 minutes
+
 export const metadata: Metadata = {
   title: "Flow - Real-Time Market Intelligence",
   description: "Live feed of notable Polymarket trades, whale movements, and volume spikes. Track smart money in real-time.",

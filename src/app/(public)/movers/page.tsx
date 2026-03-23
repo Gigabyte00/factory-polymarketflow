@@ -4,6 +4,8 @@ import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 
+export const revalidate = 600; // ISR: revalidate every 10 minutes
+
 export const metadata: Metadata = {
   title: "Market Movers",
   description: "Top gaining and losing prediction markets in the last 24 hours.",

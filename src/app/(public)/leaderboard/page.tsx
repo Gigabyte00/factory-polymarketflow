@@ -4,6 +4,8 @@ import { Trophy, TrendingUp, BarChart3 } from "lucide-react";
 import Image from "next/image";
 import type { Metadata } from "next";
 
+export const revalidate = 600; // ISR: revalidate every 10 minutes
+
 export const metadata: Metadata = {
   title: "Leaderboard",
   description: "Top Polymarket traders ranked by profit and volume.",

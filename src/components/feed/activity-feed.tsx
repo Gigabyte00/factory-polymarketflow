@@ -4,6 +4,9 @@ import { cn, formatCompact, formatProbability, formatRelativeTime } from "@/lib/
 import Link from "next/link";
 
 export async function ActivityFeed() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return <div className="terminal-card p-6"><p className="text-sm text-muted-foreground">Loading activity feed...</p></div>;
+  }
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { db: { schema: "pmflow" } });
 
   // Get recent price movements (markets with biggest absolute change)

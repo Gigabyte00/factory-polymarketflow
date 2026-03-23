@@ -4,6 +4,8 @@ import { BarChart3, TrendingUp, Droplets, Clock, ChevronLeft, ChevronRight } fro
 import Link from "next/link";
 import type { Metadata } from "next";
 
+export const revalidate = 300; // ISR: revalidate every 5 minutes
+
 export const metadata: Metadata = {
   title: "Markets",
   description: "Browse all active prediction markets on Polymarket.",

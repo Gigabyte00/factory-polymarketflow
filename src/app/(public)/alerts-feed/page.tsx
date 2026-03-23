@@ -17,6 +17,9 @@ export const metadata: Metadata = {
 export const revalidate = 3600; // Revalidate every hour (6h delay is fine)
 
 export default async function PublicAlertsFeedPage() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return <div className="p-6 text-center"><p className="text-muted-foreground">Loading alerts...</p></div>;
+  }
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { db: { schema: "pmflow" } });
 
   // Get whale positions (delayed — only show data > 6 hours old)

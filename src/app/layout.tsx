@@ -10,6 +10,13 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { OrganizationSchema, WebSiteSchema, SoftwareAppSchema } from "@/components/structured-data";
+import { unstable_cache } from "next/cache";
+
+const getCachedTickerData = unstable_cache(
+  async () => getTickerData(),
+  ["ticker-data"],
+  { revalidate: 300 } // 5 minutes
+);
 
 const inter = Inter({
   subsets: ["latin"],
@@ -82,7 +89,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const tickerData = await getTickerData();
+  const tickerData = await getCachedTickerData();
 
   return (
     <html lang="en" className="dark">

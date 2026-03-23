@@ -11,6 +11,23 @@ function getDb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { db: { schema: "pmflow" } });
 }
 
+export const revalidate = 3600; // ISR: revalidate every hour
+
+export async function generateStaticParams() {
+  try {
+    const db = getDb();
+    const { data: posts } = await db
+      .from("posts")
+      .select("slug")
+      .eq("published", true)
+      .order("published_at", { ascending: false })
+      .limit(20);
+    return (posts || []).map((p: any) => ({ slug: p.slug }));
+  } catch {
+    return [];
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const db = getDb();

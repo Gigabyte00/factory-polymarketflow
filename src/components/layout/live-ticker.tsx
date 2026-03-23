@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
  */
 export async function getTickerData(): Promise<{ label: string; price: string; change: number }[]> {
   try {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return [];
     const db = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -53,6 +54,7 @@ export async function getTickerData(): Promise<{ label: string; price: string; c
 
 export async function getHeroMarkets(): Promise<{ label: string; price: string; change: string }[]> {
   try {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return [];
     const db = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
