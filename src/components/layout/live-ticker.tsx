@@ -1,17 +1,17 @@
 import { createClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
 
-/**
- * Server component that fetches live market data for the ticker.
- * Rendered inside the layout, passed as data to the client navbar.
- */
-export async function getTickerData(): Promise<{ label: string; price: string; change: number }[]> {
+function createDb() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { db: { schema: "pmflow" } }
+  );
+}
+
+async function _getTickerData(): Promise<{ label: string; price: string; change: number }[]> {
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return [];
-    const db = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { db: { schema: "pmflow" } }
-    );
+    const db = createDb();
 
     const { data: markets } = await db
       .from("markets")
@@ -52,14 +52,9 @@ export async function getTickerData(): Promise<{ label: string; price: string; c
   }
 }
 
-export async function getHeroMarkets(): Promise<{ label: string; price: string; change: string }[]> {
+async function _getHeroMarkets(): Promise<{ label: string; price: string; change: string }[]> {
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return [];
-    const db = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { db: { schema: "pmflow" } }
-    );
+    const db = createDb();
 
     const { data: markets } = await db
       .from("markets")
@@ -99,3 +94,6 @@ export async function getHeroMarkets(): Promise<{ label: string; price: string; 
     return [];
   }
 }
+
+export const getTickerData = unstable_cache(_getTickerData, ["ticker-data"], { revalidate: 120 });
+export const getHeroMarkets = unstable_cache(_getHeroMarkets, ["hero-markets"], { revalidate: 120 });

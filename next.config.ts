@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
         hostname: "polymarket-upload.s3.us-east-2.amazonaws.com",
       },
     ],
+    minimumCacheTTL: 86400,
   },
 };
 

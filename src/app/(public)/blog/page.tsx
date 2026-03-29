@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/blog" },
 };
 
-export const revalidate = 3600; // Revalidate every hour (blog content is not time-sensitive)
+export const revalidate = 3600; // Revalidate hourly
 
 export default async function BlogPage() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
