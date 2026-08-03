@@ -31,6 +31,7 @@ const jetbrainsMono = JetBrains_Mono({
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
 
 export const metadata: Metadata = {
+    other: { verification: 'e0ebe1cf3bb85fbc32b02b10dee27b92' },
   metadataBase: new URL("https://polymarketflow.com"),
   title: {
     default: "PolymarketFlow - Prediction Market Intelligence",
