@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { canAccessBriefings, hasPersonalizedBriefings } from "@/lib/entitlements";
+import { PerpsBanner } from "@/components/perps-banner";
 
 export const metadata: Metadata = { title: "AI Briefings" };
 
@@ -43,6 +44,9 @@ export default async function BriefingsPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
+      {/* Perps launch banner — renders only while perps_live is on */}
+      <PerpsBanner />
+
       <div className="mb-6">
         <h1 className="text-2xl font-bold flex items-center gap-2"><Brain className="h-6 w-6 text-warning" />AI Briefings</h1>
         <p className="text-muted-foreground text-sm mt-1">Daily market intelligence powered by Claude {personalized ? "(personalized)" : ""}</p>

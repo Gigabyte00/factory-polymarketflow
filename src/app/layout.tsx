@@ -10,6 +10,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { OrganizationSchema, WebSiteSchema, SoftwareAppSchema } from "@/components/structured-data";
+import { isPerpsLive } from "@/lib/flags";
 import { unstable_cache } from "next/cache";
 
 const getCachedTickerData = unstable_cache(
@@ -90,7 +91,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const tickerData = await getCachedTickerData();
+  const [tickerData, perpsLive] = await Promise.all([
+    getCachedTickerData(),
+    isPerpsLive(),
+  ]);
 
   return (
     <html lang="en" className="dark">
@@ -121,7 +125,7 @@ export default async function RootLayout({
         <OrganizationSchema />
         <WebSiteSchema />
         <SoftwareAppSchema />
-        <Navbar tickerData={tickerData} />
+        <Navbar tickerData={tickerData} showPerps={perpsLive} />
         <div className="flex flex-1" role="presentation">
           <Sidebar />
           <main className="flex-1 overflow-auto" role="main">{children}</main>

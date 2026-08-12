@@ -10,6 +10,7 @@ import {
   BookOpen,
   CreditCard,
   Filter,
+  Flame,
   Globe,
   LayoutDashboard,
   LineChart,
@@ -24,15 +25,22 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navLinks = [
+type NavLink = { href: string; label: string; icon: LucideIcon; badge?: string };
+
+const navLinks: NavLink[] = [
   { href: "/markets", label: "Markets", icon: LayoutDashboard },
   { href: "/movers", label: "Movers", icon: TrendingUp },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 
-const mobileMenuSections = [
+// Shown only while the perps_live flag is on (passed down from the root
+// layout via the showPerps prop — see src/lib/flags.ts).
+const perpsLink: NavLink = { href: "/perps", label: "Perps", icon: Flame, badge: "NEW" };
+
+const mobileMenuSections: { title: string; links: NavLink[] }[] = [
   {
     title: "Explore",
     links: [
@@ -76,11 +84,25 @@ const mobileMenuSections = [
 
 interface NavbarProps {
   tickerData?: { label: string; price: string; change: number }[];
+  /** perps_live flag — adds the Perps item to desktop + mobile nav when true */
+  showPerps?: boolean;
 }
 
-export function Navbar({ tickerData }: NavbarProps) {
+export function Navbar({ tickerData, showPerps = false }: NavbarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const desktopLinks = showPerps
+    ? [navLinks[0], perpsLink, ...navLinks.slice(1)]
+    : navLinks;
+
+  const menuSections = showPerps
+    ? mobileMenuSections.map((s) =>
+        s.title === "Explore"
+          ? { ...s, links: [s.links[0], perpsLink, ...s.links.slice(1)] }
+          : s
+      )
+    : mobileMenuSections;
 
   const ticker = tickerData && tickerData.length > 0 ? tickerData : [
     { label: "Loading markets...", price: "—", change: 0 },
@@ -123,7 +145,7 @@ export function Navbar({ tickerData }: NavbarProps) {
 
         {/* Desktop nav links */}
         <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
-          {navLinks.map((link) => {
+          {desktopLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href;
             return (
@@ -139,6 +161,11 @@ export function Navbar({ tickerData }: NavbarProps) {
               >
                 <Icon className="h-4 w-4" />
                 {link.label}
+                {link.badge && (
+                  <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-primary/20 text-primary leading-none">
+                    {link.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -174,7 +201,7 @@ export function Navbar({ tickerData }: NavbarProps) {
       {mobileOpen && (
         <div className="lg:hidden border-t border-border bg-background/98 backdrop-blur max-h-[70vh] overflow-y-auto">
           <nav className="px-4 py-3 space-y-4" aria-label="Mobile navigation">
-            {mobileMenuSections.map((section) => (
+            {menuSections.map((section) => (
               <div key={section.title}>
                 <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 px-2">{section.title}</h3>
                 <div className="space-y-0.5">
@@ -195,6 +222,11 @@ export function Navbar({ tickerData }: NavbarProps) {
                       >
                         <Icon className="h-4 w-4 flex-shrink-0" />
                         {link.label}
+                        {link.badge && (
+                          <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-primary/20 text-primary leading-none">
+                            {link.badge}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}

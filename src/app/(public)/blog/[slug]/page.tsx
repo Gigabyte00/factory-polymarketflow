@@ -1,8 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, User } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, User, Zap } from "lucide-react";
 import { BreadcrumbSchema } from "@/components/structured-data";
+import { RiskDisclosure } from "@/components/risk-disclosure";
+import { isPerpsLive } from "@/lib/flags";
 import type { Metadata } from "next";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -53,6 +55,11 @@ export default async function BlogArticlePage({ params }: Props) {
 
   if (!post) notFound();
 
+  // Perps posts get the reusable risk block appended; the outbound CTA stays
+  // hidden until the perps_live flag is on (src/lib/flags.ts).
+  const isPerpsPost = post.category === "Perps";
+  const perpsCtaLive = isPerpsPost ? await isPerpsLive() : false;
+
   const date = post.published_at ? new Date(post.published_at).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : "";
 
   // Get related posts (same category)
@@ -95,6 +102,25 @@ export default async function BlogArticlePage({ params }: Props) {
         </div>
         <h1 className="text-2xl font-bold mb-6">{post.title}</h1>
         <div className="terminal-card p-6" dangerouslySetInnerHTML={{ __html: `<p class="text-sm text-muted-foreground leading-relaxed mb-4">${htmlContent}</p>` }} />
+
+        {isPerpsPost && (
+          <div className="mt-6 space-y-4">
+            {perpsCtaLive && (
+              <div className="terminal-card p-5 border-primary/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <p className="text-sm font-medium">Ready to see Polymarket Perps for yourself?</p>
+                <a
+                  href="/go/polymarket-perps"
+                  target="_blank"
+                  rel="sponsored nofollow noopener"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors flex-shrink-0"
+                >
+                  <Zap className="h-4 w-4" /> Open Polymarket Perps
+                </a>
+              </div>
+            )}
+            <RiskDisclosure />
+          </div>
+        )}
       </article>
 
       {/* Related articles */}

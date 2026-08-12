@@ -86,7 +86,8 @@ export default async function MarketDetailPage({ params }: Props) {
             </div>
             <div className="flex items-center gap-2 mt-4">
               <WatchlistButton eventId={event.id} />
-              <a href={`https://polymarket.com/event/${event.slug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+              {/* Outbound via /go so the destination stays data-driven (pmflow.outbound_links) */}
+              <a href={`/go/polymarket?to=event/${event.slug}`} target="_blank" rel="sponsored nofollow noopener" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
                 <ExternalLink className="h-3.5 w-3.5" />Trade on Polymarket
               </a>
             </div>

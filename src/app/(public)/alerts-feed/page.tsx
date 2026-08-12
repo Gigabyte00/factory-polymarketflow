@@ -3,6 +3,7 @@ import { Bell, TrendingUp, TrendingDown, Users, Zap, ArrowRight } from "lucide-r
 import { cn, formatCompact, truncateAddress, formatRelativeTime } from "@/lib/utils";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { PerpsBanner } from "@/components/perps-banner";
 
 export const metadata: Metadata = {
   title: "Whale Alerts - Free Prediction Market Intelligence",
@@ -56,6 +57,9 @@ export default async function PublicAlertsFeedPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
+      {/* Perps launch banner — renders only while perps_live is on */}
+      <PerpsBanner />
+
       {/* Hero */}
       <div className="terminal-card p-8 mb-6 text-center">
         <Bell className="h-10 w-10 text-primary mx-auto mb-3" />
