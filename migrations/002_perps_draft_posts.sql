@@ -1,7 +1,7 @@
 -- ============================================================================
 -- 002_perps_draft_posts.sql — 3 DRAFT blog posts for the Perps launch
 -- ============================================================================
--- STATUS: NOT APPLIED. Run after 001_perps_launch.sql. Idempotent (skips
+-- STATUS: APPLIED 2026-08-16 (via MCP execute_sql). Idempotent (skips
 -- slugs that already exist).
 --
 -- All three posts insert with published = false (the repo's draft mechanism —

@@ -1,6 +1,6 @@
 # Migrations — Polymarket Perps staged launch
 
-**Status: written, NOT applied.** Nothing here has touched production. The app
+**Status: APPLIED 2026-08-16, LAUNCHED 2026-09-03** (001+002 via MCP + service_role grants; perps destination = poly.market/g9oa58F, generic = ?via=merchant-dash). Flag flip + post publish executed by perps_watch on 2026-09-03 (Polymarket's wide Perps launch signal); post bodies then updated in-DB (geo-eligibility, Sept-3 launch status, TODO markers removed) — DB is source of truth for post content now, 002 is the historical seed. Original text: the app
 fails safe until these run: `perps_live` reads as `false` (coming-soon /perps,
 no nav item, no banners) and `/go/<slug>` uses hardcoded polymarket.com
 fallbacks.

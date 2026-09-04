@@ -23,15 +23,19 @@ export function RiskDisclosure() {
           falls below maintenance margin, Polymarket&apos;s liquidation engine closes
           your position automatically, with additional liquidation fees on those
           fills — liquidation is <strong className="text-foreground">not a guaranteed stop-loss</strong>,
-          and per Polymarket&apos;s documentation (as of Aug 2026) fast markets can
+          and per Polymarket&apos;s documentation (as of September 2026) fast markets can
           exhaust your entire deposited collateral. Never trade with funds you
           can&apos;t afford to lose in full.
         </p>
         <p>
           Nothing on this page is investment, financial, or legal advice.
-          Prediction markets and perpetual futures carry regional restrictions —
-          confirm your own eligibility. Mechanics described here are sourced from
-          docs.polymarket.com/perps as of August 2026 and may change.
+          Perpetual futures and prediction markets carry regional restrictions —
+          per Polymarket&apos;s documentation, Perps order placement is{" "}
+          <strong className="text-foreground">blocked in the United States and Canada</strong>,
+          and the main platform carries separate restrictions in the UK, Australia
+          and elsewhere. Confirm your own eligibility; circumventing
+          geo-restrictions violates Polymarket&apos;s terms. Mechanics described here
+          are sourced from docs.polymarket.com/perps as of September 2026 and may change.
         </p>
         <p className="border-t border-border pt-2">
           <strong className="text-foreground">Affiliate disclosure:</strong> We may

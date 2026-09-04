@@ -59,7 +59,7 @@ export default async function PerpsPage() {
       {/* Hero */}
       <div className="terminal-card p-8 sm:p-10 mb-8 text-center">
         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-primary/10 text-primary mb-4">
-          <Rocket className="h-3 w-3" /> {live ? "Now Live" : "Early Access"}
+          <Rocket className="h-3 w-3" /> {live ? "Now Live — launched Sept 3, 2026" : "Coming Soon"}
         </span>
         <h1 className="text-3xl font-bold mb-3">Polymarket Perps</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
@@ -123,7 +123,8 @@ export default async function PerpsPage() {
             <h3 className="text-sm font-semibold mb-1">Leverage, long or short</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Control more notional than your collateral, in either direction. Max leverage is
-              set per market (some allow up to 20x as of Aug 2026).
+              set per market (up to 20x on crypto, index and commodity markets, 10x on single
+              stocks, as of Sept 2026).
             </p>
           </div>
           <div className="terminal-card p-5">
@@ -172,7 +173,7 @@ export default async function PerpsPage() {
       <section className="mb-10">
         <h2 className="text-xl font-bold mb-1">Fees, funding &amp; liquidation</h2>
         <p className="text-xs text-muted-foreground mb-4">
-          As of Aug 2026, per{" "}
+          As of September 2026, per{" "}
           <a
             href="https://docs.polymarket.com/perps/overview"
             target="_blank"
@@ -238,16 +239,26 @@ export default async function PerpsPage() {
         </div>
       </section>
 
-      {/* Access */}
+      {/* Access + eligibility */}
       <section className="mb-10">
         <h2 className="text-xl font-bold mb-4">Getting access</h2>
+        <div className="terminal-card p-5 border-warning/40 bg-warning/5 mb-4">
+          <p className="text-sm leading-relaxed max-w-3xl">
+            <strong>Eligibility first:</strong> per Polymarket&apos;s official documentation,
+            Perps order placement is <strong>blocked in the United States and Canada</strong>{" "}
+            (plus sanctioned jurisdictions) — market data is viewable, but you cannot trade.
+            The main platform carries separate restrictions in the UK, Australia and elsewhere.
+            If you&apos;re in a restricted region, Perps won&apos;t be tradable for you, and
+            circumventing geo-restrictions violates Polymarket&apos;s terms.
+          </p>
+        </div>
         <div className="terminal-card p-6">
           <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
-            Perps are in <strong className="text-foreground">early access</strong> as of Aug 2026:
-            access requires a valid Perps referral link or code, applied automatically when you
-            open Perps through one. You&apos;ll need a Polymarket account and at least 10 pUSD to
-            fund the dedicated Perps balance. Perps also carry their own geographic
-            restrictions, separate from prediction markets — confirm your eligibility in the app.
+            Perps <strong className="text-foreground">launched broadly on September 3, 2026</strong>{" "}
+            (in beta since April). During the rollout, access may still require a valid Perps
+            referral link or code — applied automatically when you open Perps through one.
+            You&apos;ll need a Polymarket account and at least 10 pUSD to fund the dedicated
+            Perps balance.
           </p>
           {live && (
             <a

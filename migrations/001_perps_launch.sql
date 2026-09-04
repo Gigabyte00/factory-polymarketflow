@@ -1,7 +1,7 @@
 -- ============================================================================
 -- 001_perps_launch.sql — Polymarket Perps staged-launch infrastructure
 -- ============================================================================
--- STATUS: NOT APPLIED. Run in the Supabase SQL editor (or psql) against the
+-- STATUS: APPLIED 2026-08-16 (via MCP; + service_role grants in pmflow_service_role_grants). Original instructions:
 -- project that hosts the `pmflow` schema. Idempotent — safe to re-run.
 --
 -- Creates:
