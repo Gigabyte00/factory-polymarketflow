@@ -309,6 +309,9 @@ export default async function PerpsPage() {
           <Link href="/perps/markets" className="terminal-card p-4 border-primary/30 hover:border-primary/60 transition-colors font-medium">
             📊 Live Perps markets screener — prices, funding, OI →
           </Link>
+          <Link href="/perps/calculator" className="terminal-card p-4 border-primary/30 hover:border-primary/60 transition-colors font-medium">
+            🧮 Perps calculator — liquidation, fees &amp; funding →
+          </Link>
           <Link href="/blog/polymarket-perps-tutorial" className="terminal-card p-4 hover:border-primary/40 transition-colors">
             The complete Perps tutorial (2026) →
           </Link>

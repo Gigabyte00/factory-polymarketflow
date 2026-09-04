@@ -149,6 +149,7 @@ export default async function PerpsMarketsPage() {
       <div className="mb-6">
         <h2 className="text-lg font-bold mb-3">Perps guides</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+          <Link href="/perps/calculator" className="terminal-card p-4 hover:border-primary/40 transition-colors">Perps calculator: liquidation, fees &amp; funding →</Link>
           <Link href="/perps" className="terminal-card p-4 hover:border-primary/40 transition-colors">How Polymarket Perps work →</Link>
           <Link href="/blog/polymarket-perps-tutorial" className="terminal-card p-4 hover:border-primary/40 transition-colors">The complete Perps tutorial →</Link>
           <Link href="/blog/polymarket-perps-fees" className="terminal-card p-4 hover:border-primary/40 transition-colors">Fees explained + worked examples →</Link>
