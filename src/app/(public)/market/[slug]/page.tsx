@@ -1,5 +1,6 @@
 import { getEventBySlug, getTopHoldersForMarket, getEvents } from "@/lib/supabase/pmflow";
 import { PriceChart } from "@/components/charts/price-chart";
+import { PerpsBanner } from "@/components/perps-banner";
 import { BreadcrumbSchema, FAQSchema } from "@/components/structured-data";
 import { WatchlistButton } from "@/components/markets/watchlist-button";
 
@@ -65,6 +66,8 @@ export default async function MarketDetailPage({ params }: Props) {
         {event.category && (<><a href={`/markets?category=${event.category.toLowerCase()}`} className="hover:text-foreground transition-colors capitalize">{event.category}</a><span>/</span></>)}
         <span className="text-foreground truncate">{event.title}</span>
       </div>
+
+      <PerpsBanner />
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">

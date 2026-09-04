@@ -1,5 +1,6 @@
 import { getEvents } from "@/lib/supabase/pmflow";
 import { MarketCard } from "@/components/markets/market-card";
+import { PerpsBanner } from "@/components/perps-banner";
 import { BarChart3, TrendingUp, Droplets, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -65,6 +66,8 @@ export default async function MarketsPage({
           {search && <span> matching &ldquo;{search}&rdquo;</span>}
         </p>
       </div>
+
+      <PerpsBanner />
 
       {/* Sort tabs */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2" role="tablist" aria-label="Sort markets">
