@@ -83,6 +83,35 @@ const comparisonRows = [
 
 export default function PricingPage() {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  // Paid tiers go straight to Stripe checkout for signed-in users; signed-out
+  // users bounce through /auth with the plan preserved, land on the dashboard,
+  // and complete checkout from here on their return.
+  async function startCheckout(plan: "starter" | "pro") {
+    setBusy(plan);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan, billing }),
+      });
+      if (res.status === 401) {
+        window.location.href = `/auth?plan=${plan}&billing=${billing}`;
+        return;
+      }
+      const data = await res.json();
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      window.location.href = `/auth?plan=${plan}&billing=${billing}`;
+    } catch {
+      window.location.href = `/auth?plan=${plan}&billing=${billing}`;
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
@@ -119,7 +148,17 @@ export default function PricingPage() {
                 <li key={f} className="flex items-start gap-2 text-sm"><Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />{f}</li>
               ))}
             </ul>
-            <Link href={`${tier.href}${tier.monthlyPrice > 0 ? `&billing=${billing}` : ""}`} className={`block text-center py-3 rounded-md text-sm font-semibold transition-colors ${tier.highlighted ? "bg-primary text-primary-foreground hover:bg-primary/90" : "border border-border hover:bg-accent"}`}>{tier.cta}</Link>
+            {tier.monthlyPrice > 0 ? (
+              <button
+                onClick={() => startCheckout(tier.name.toLowerCase() as "starter" | "pro")}
+                disabled={busy !== null}
+                className={`block w-full text-center py-3 rounded-md text-sm font-semibold transition-colors disabled:opacity-60 ${tier.highlighted ? "bg-primary text-primary-foreground hover:bg-primary/90" : "border border-border hover:bg-accent"}`}
+              >
+                {busy === tier.name.toLowerCase() ? "Opening checkout…" : tier.cta}
+              </button>
+            ) : (
+              <Link href={tier.href} className="block text-center py-3 rounded-md text-sm font-semibold transition-colors border border-border hover:bg-accent">{tier.cta}</Link>
+            )}
           </div>
         ))}
       </div>
@@ -161,7 +200,7 @@ export default function PricingPage() {
         <h2 className="text-xl font-bold text-center mb-8">FAQ</h2>
         <div className="space-y-4">
           <FAQ q="Can I cancel anytime?" a="Yes. Cancel anytime from your account settings. You keep access until end of billing period." />
-          <FAQ q="Is there a free trial?" a="Yes! Sign up and get 7 days of Pro features free — no credit card required. After the trial, you keep the free tier." />
+          <FAQ q="Is there a free trial?" a="Yes — paid plans start with a 7-day free trial through Stripe checkout. Cancel any time during the trial and you won't be charged; you keep the free tier." />
           <FAQ q="What's the difference between Starter and Pro?" a="Starter gives you real-time alerts and the screener. Pro adds the Flow feed, smart money signals, advanced portfolio analytics, and personalized AI briefings." />
           <FAQ q="Do I need a Polymarket account?" a="No. PolymarketFlow works independently. A wallet address is only needed for the Portfolio Tracker." />
         </div>

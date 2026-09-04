@@ -10,9 +10,17 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ActivityFeed } from "@/components/feed/activity-feed";
 import { SentimentGauge } from "@/components/feed/sentiment-gauge";
 import { getHeroMarkets } from "@/components/layout/live-ticker";
+
+export const metadata: Metadata = {
+  title: { absolute: "PolymarketFlow — Live Polymarket Analytics, Whale Tracker & Perps Data" },
+  description:
+    "Free real-time Polymarket intelligence: live market odds, whale tracking, movers, a full Perps screener and calculator, plus daily briefings and guides.",
+  alternates: { canonical: "/" },
+};
 
 function ActivityFeedWrapper() {
   return (

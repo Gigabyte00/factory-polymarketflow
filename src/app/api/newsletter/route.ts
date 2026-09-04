@@ -145,24 +145,36 @@ export async function POST(request: Request) {
   </div>
 
   <div style="padding:16px 0;border-top:1px solid #1e293b;text-align:center;color:#475569;font-size:10px;">
-    <p>PolymarketFlow &bull; polymarketflow.com</p>
+    <p>PolymarketFlow &bull; polymarketflow.com &bull; operated by Merchant Dash LLC, 12325 Academy Rd #11, Philadelphia, PA 19154</p>
     <p>Data for informational purposes only. Not financial advice.</p>
+    <p><a href="mailto:support@polymarketflow.com?subject=unsubscribe" style="color:#64748b;">Unsubscribe</a> — or reply "unsubscribe" to this email.</p>
   </div>
 
 </div>
 </body></html>`;
 
-  // 5. Get subscribers (all users with email alerts enabled)
+  // 5. Get subscribers: opted-in app users PLUS public signups from the
+  // /api/subscribe form (email_subscribers) — previously the public list was
+  // captured but never sent to.
   const { data: subscribers } = await db
     .from("users")
     .select("email")
     .eq("alert_email_enabled", true);
+  const { data: publicSubs } = await db
+    .from("email_subscribers")
+    .select("email")
+    .not("unsubscribed", "is", true);
 
   // Also always send to support
   const recipients = new Set<string>(["support@polymarketflow.com"]);
   if (subscribers) {
     for (const s of subscribers) {
       if (s.email) recipients.add(s.email);
+    }
+  }
+  if (publicSubs) {
+    for (const s of publicSubs) {
+      if (s.email) recipients.add(s.email.toLowerCase());
     }
   }
 
@@ -187,6 +199,9 @@ export async function POST(request: Request) {
           to: [email],
           subject: `Morning Odds — ${today}`,
           html: emailHtml,
+          headers: {
+            "List-Unsubscribe": "<mailto:support@polymarketflow.com?subject=unsubscribe>",
+          },
         }),
       });
       if (res.ok) sent++;

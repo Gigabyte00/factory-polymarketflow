@@ -1,7 +1,7 @@
 /**
  * Supabase pmflow schema client for server-side data access.
- * All pages use this to read from our ingested data.
- * Falls back to direct Polymarket API if Supabase data is empty.
+ * All pages use this to read from our ingested data. There is NO live-API
+ * fallback here — if a table is empty, callers render their empty states.
  */
 
 import { createClient } from "@supabase/supabase-js";

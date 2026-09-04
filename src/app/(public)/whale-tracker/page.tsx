@@ -3,15 +3,39 @@ import { Users, TrendingUp, Target, Bell, ArrowRight, Zap } from "lucide-react";
 import { formatCompact, truncateAddress, cn } from "@/lib/utils";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { FAQSchema } from "@/components/structured-data";
 
 export const revalidate = 600; // ISR: revalidate every 10 minutes
 
 export const metadata: Metadata = {
-  title: "Polymarket Whale Tracker - Follow Smart Money",
-  description: "Track 1,900+ Polymarket whale wallets in real-time. Smart Money Scores, strategy labels, position tracking, and instant alerts when whales move.",
+  title: "Polymarket Whale Tracker — Biggest Trades Live (Free)",
+  description: "Track Polymarket whale wallets free: the biggest positions live, Smart Money Scores, strategy labels and instant alerts when whales move. Updated continuously.",
   alternates: { canonical: "/whale-tracker" },
-  openGraph: { title: "Polymarket Whale Tracker | PolymarketFlow", description: "Follow the smart money. Track 1,900+ whale wallets on Polymarket." },
+  openGraph: { title: "Polymarket Whale Tracker — Biggest Trades Live | PolymarketFlow", description: "Follow the smart money. Live whale positions, Smart Money Scores and alerts." },
 };
+
+const FAQ_ITEMS = [
+  {
+    question: "How can I track Polymarket whales for free?",
+    answer:
+      "This page and the alerts feed are free: we monitor thousands of large Polymarket wallets and surface big positions with a short delay. Real-time whale alerts and the full flow feed are part of paid plans.",
+  },
+  {
+    question: "Who are the biggest Polymarket traders?",
+    answer:
+      "The leaderboard ranks wallets by Smart Money Score — a 0-100 measure built from volume, consistency, diversification and recency. Well-known high-volume accounts (like the trader known as Domer) appear alongside pseudonymous wallets identified only by address.",
+  },
+  {
+    question: "What counts as a whale trade on Polymarket?",
+    answer:
+      "We track wallets holding large positions — the public feed surfaces positions above roughly $10,000, and this page highlights recent entries above $20,000. Thresholds are ours, not Polymarket's.",
+  },
+  {
+    question: "Can you copy whale trades on Polymarket?",
+    answer:
+      "You can see what large wallets hold and follow their entries, but blindly copying is risky: whales can exit without warning, average into losers, or hedge elsewhere. Use whale activity as a signal to research, not an instruction to trade.",
+  },
+];
 
 export default async function WhaleTrackerLandingPage() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -39,6 +63,7 @@ export default async function WhaleTrackerLandingPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
+      <FAQSchema items={FAQ_ITEMS} />
       {/* Hero */}
       <div className="text-center mb-10 pt-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-sm font-medium mb-4">
@@ -116,6 +141,19 @@ export default async function WhaleTrackerLandingPage() {
           <div><Zap className="h-5 w-5 text-primary mb-2" /><h3 className="text-sm font-semibold mb-1">Smart Money Scores</h3><p className="text-xs text-muted-foreground">Proprietary 0-100 scoring based on volume, consistency, diversification, and recency.</p></div>
           <div><Bell className="h-5 w-5 text-primary mb-2" /><h3 className="text-sm font-semibold mb-1">Instant Alerts</h3><p className="text-xs text-muted-foreground">Get notified when whales enter or exit positions. Email and Slack supported.</p></div>
           <div><Target className="h-5 w-5 text-primary mb-2" /><h3 className="text-sm font-semibold mb-1">Strategy Labels</h3><p className="text-xs text-muted-foreground">Wallets classified by behavior: Consistent Winner, Focused, Active Trader, Whale, and more.</p></div>
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div className="max-w-2xl mx-auto mb-10">
+        <h2 className="text-xl font-bold text-center mb-6">Whale tracking FAQ</h2>
+        <div className="space-y-4">
+          {FAQ_ITEMS.map((f) => (
+            <div key={f.question} className="terminal-card p-4">
+              <h3 className="text-sm font-semibold mb-1">{f.question}</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">{f.answer}</p>
+            </div>
+          ))}
         </div>
       </div>
 
