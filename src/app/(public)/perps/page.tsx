@@ -15,7 +15,35 @@ import {
 import { isPerpsLive } from "@/lib/flags";
 import { RiskDisclosure } from "@/components/risk-disclosure";
 import { PerpsNotifyForm } from "@/components/perps-notify-form";
-import { BreadcrumbSchema } from "@/components/structured-data";
+import { BreadcrumbSchema, FAQSchema } from "@/components/structured-data";
+
+const FAQ_ITEMS = [
+  {
+    question: "What are Polymarket Perps?",
+    answer:
+      "Perps (perpetual futures) are contracts that track an underlying asset — crypto, single stocks, indices or commodities — and trade continuously with no expiry date. You take a leveraged long or short position on price, collateralized in pUSD, with an hourly funding mechanism keeping the contract anchored to its index price.",
+  },
+  {
+    question: "What is the maximum leverage on Polymarket Perps?",
+    answer:
+      "Leverage is set per market: up to 20x on major crypto, indices and commodities, and up to 10x on single stocks (as of September 2026). Per-market risk tiers reduce available leverage as position size grows.",
+  },
+  {
+    question: "Is Polymarket Perps available in the United States?",
+    answer:
+      "No. Per Polymarket's official documentation, Perps order placement is blocked in the United States and Canada (plus sanctioned jurisdictions). Market data is viewable anywhere, but US and Canadian users cannot trade — and circumventing geo-restrictions violates Polymarket's terms.",
+  },
+  {
+    question: "How does funding work on Polymarket Perps?",
+    answer:
+      "Funding settles every hour directly between longs and shorts — the protocol takes no cut. When the perp trades above its index price, longs pay shorts; below it, shorts pay longs. The hourly rate is capped at ±4% in extreme conditions.",
+  },
+  {
+    question: "How do I get access to Polymarket Perps?",
+    answer:
+      "Perps launched broadly on September 3, 2026. You need a Polymarket account and at least 10 pUSD in the dedicated Perps balance; during the rollout, access may still require a referral link or code, applied automatically when you open Perps through one.",
+  },
+];
 
 export const metadata: Metadata = {
   title: "Polymarket Perps — What They Are & How They Work",
@@ -55,6 +83,7 @@ export default async function PerpsPage() {
           { name: "Perps", url: "https://polymarketflow.com/perps" },
         ]}
       />
+      <FAQSchema items={FAQ_ITEMS} />
 
       {/* Hero */}
       <div className="terminal-card p-8 sm:p-10 mb-8 text-center">
@@ -79,10 +108,10 @@ export default async function PerpsPage() {
               <Zap className="h-4 w-4" /> Start Trading Perps
             </a>
             <Link
-              href="/blog"
+              href="/perps/markets"
               className="flex items-center gap-2 px-6 py-3 rounded-lg border border-border font-medium hover:bg-accent transition-colors"
             >
-              Read the Guides
+              <LineChart className="h-4 w-4" /> Live Perps Markets
             </Link>
           </div>
         ) : (
@@ -270,6 +299,31 @@ export default async function PerpsPage() {
               Get Perps Access <ArrowRight className="h-4 w-4" />
             </a>
           )}
+        </div>
+      </section>
+
+      {/* Guides + live data */}
+      <section className="mb-10">
+        <h2 className="text-xl font-bold mb-4">Go deeper</h2>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+          <Link href="/perps/markets" className="terminal-card p-4 border-primary/30 hover:border-primary/60 transition-colors font-medium">
+            📊 Live Perps markets screener — prices, funding, OI →
+          </Link>
+          <Link href="/blog/polymarket-perps-tutorial" className="terminal-card p-4 hover:border-primary/40 transition-colors">
+            The complete Perps tutorial (2026) →
+          </Link>
+          <Link href="/blog/polymarket-perps-fees" className="terminal-card p-4 hover:border-primary/40 transition-colors">
+            Fees explained: full schedule + worked examples →
+          </Link>
+          <Link href="/blog/polymarket-perps-risk-math" className="terminal-card p-4 hover:border-primary/40 transition-colors">
+            Leverage, funding &amp; liquidation: the risk math →
+          </Link>
+          <Link href="/blog/polymarket-perps-countries" className="terminal-card p-4 hover:border-primary/40 transition-colors">
+            Country eligibility: where Perps are available →
+          </Link>
+          <Link href="/blog/polymarket-perps-vs-hyperliquid" className="terminal-card p-4 hover:border-primary/40 transition-colors">
+            Polymarket Perps vs Hyperliquid →
+          </Link>
         </div>
       </section>
 
