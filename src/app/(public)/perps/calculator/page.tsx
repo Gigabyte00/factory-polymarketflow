@@ -8,6 +8,7 @@
  */
 
 import Link from "next/link";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Calculator, ShieldAlert, Zap } from "lucide-react";
 import { getPerpsInstruments, getPerpsTickers } from "@/lib/perps-api";
@@ -84,7 +85,9 @@ export default async function PerpsCalculatorPage() {
       </div>
 
       {instruments.length > 0 && tickers.length > 0 ? (
-        <PerpsCalculators instruments={instruments} tickers={tickers} />
+        <Suspense fallback={<div className="terminal-card p-8 text-center text-muted-foreground mb-4">Loading calculator…</div>}>
+          <PerpsCalculators instruments={instruments} tickers={tickers} />
+        </Suspense>
       ) : (
         <div className="terminal-card p-8 text-center text-muted-foreground mb-4">
           Live Perps data is temporarily unavailable — refresh in a moment.

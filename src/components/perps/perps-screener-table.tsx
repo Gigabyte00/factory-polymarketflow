@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { ArrowDown, ArrowUp, RefreshCw } from "lucide-react";
 import { cn, formatCompact } from "@/lib/utils";
 import type { PerpsScreenerRow } from "@/lib/perps-api";
@@ -114,8 +115,10 @@ export function PerpsScreenerTable({ initialRows }: { initialRows: PerpsScreener
             {view.map((r) => (
               <tr key={r.instrumentId} className="border-b border-border/50 last:border-0 hover:bg-accent/30">
                 <td className="px-3 py-2.5">
-                  <span className="font-semibold">{r.baseAsset}</span>
-                  <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">{r.category === "equity" ? "stock" : r.category}</span>
+                  <Link href={`/perps/market/${r.symbol}`} className="group">
+                    <span className="font-semibold group-hover:text-primary transition-colors">{r.baseAsset}</span>
+                    <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">{r.category === "equity" ? "stock" : r.category}</span>
+                  </Link>
                 </td>
                 <td className="px-3 py-2.5 text-right font-mono">${fmtPrice(r.markPrice)}</td>
                 <td className={cn(

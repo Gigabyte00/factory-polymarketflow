@@ -115,7 +115,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     }));
 
-    return [...staticPages, ...blogPages, ...categoryPages, ...dailyPages, ...marketPages, ...traderPages];
+    // Per-instrument Perps pages (public Perps API; fail-safe)
+    let perpsPages: MetadataRoute.Sitemap = [];
+    try {
+      const res = await fetch("https://api.perpetuals.polymarket.com/v1/info/instruments", {
+        next: { revalidate: 3600 },
+      });
+      if (res.ok) {
+        const instruments = (await res.json()) as { symbol: string }[];
+        perpsPages = (instruments || []).map((i) => ({
+          url: `${baseUrl}/perps/market/${i.symbol}`,
+          lastModified: new Date(),
+          changeFrequency: "hourly" as const,
+          priority: 0.7,
+        }));
+      }
+    } catch {}
+
+    return [...staticPages, ...blogPages, ...categoryPages, ...dailyPages, ...marketPages, ...traderPages, ...perpsPages];
   } catch {
     return [...staticPages, ...blogPages, ...categoryPages, ...dailyPages];
   }

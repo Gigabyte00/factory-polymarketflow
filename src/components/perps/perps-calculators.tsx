@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PerpsInstrument, PerpsTicker } from "@/lib/perps-api";
@@ -69,9 +70,16 @@ export function PerpsCalculators({
     return m;
   }, [tickers]);
 
+  const searchParams = useSearchParams();
+  const urlSymbol = searchParams.get("symbol");
   const [quotes, setQuotes] = useState<Map<string, LiveQuote>>(initialQuotes);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
-  const [symbol, setSymbol] = useState(sorted.find((i) => i.symbol === "BTC-USD")?.symbol ?? sorted[0]?.symbol ?? "");
+  const [symbol, setSymbol] = useState(
+    sorted.find((i) => urlSymbol && i.symbol.toLowerCase() === urlSymbol.toLowerCase())?.symbol ??
+      sorted.find((i) => i.symbol === "BTC-USD")?.symbol ??
+      sorted[0]?.symbol ??
+      ""
+  );
   const [side, setSide] = useState<"long" | "short">("long");
   const [collateral, setCollateral] = useState(100);
   const [leverage, setLeverage] = useState(5);

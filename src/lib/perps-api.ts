@@ -80,6 +80,49 @@ export async function getPerpsTickers(): Promise<PerpsTicker[]> {
   return (await fetchJson<PerpsTicker[]>(`${PERPS_API}/tickers`, 10)) ?? [];
 }
 
+export interface PerpsFundingPoint {
+  timestamp: number; // ms epoch
+  fundingHourlyPct: number; // e.g. 0.000625 (%)
+}
+
+/** Hourly funding-rate history (newest-first upstream → returned oldest-first).
+ *  Endpoint caps at ~100 entries (~4 days hourly). Cached 5m. */
+export async function getFundingHistory(instrumentId: number): Promise<PerpsFundingPoint[]> {
+  const data = await fetchJson<{ data: { funding_rate: string; timestamp: number }[] }>(
+    `${PERPS_API}/funding?instrument_id=${instrumentId}`,
+    300
+  );
+  return (data?.data ?? [])
+    .map((d) => ({ timestamp: d.timestamp, fundingHourlyPct: parseFloat(d.funding_rate) * 100 }))
+    .sort((a, b) => a.timestamp - b.timestamp);
+}
+
+export interface PerpsCandle {
+  time: number; // seconds epoch (lightweight-charts convention)
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volumeBase: number;
+}
+
+/** Hourly OHLCV candles for one instrument over the trailing `hours`. Cached 5m. */
+export async function getPerpsKlines(instrumentId: number, hours = 168): Promise<PerpsCandle[]> {
+  const start = Date.now() - hours * 3600 * 1000;
+  const data = await fetchJson<{ data: [number, string, string, string, string, string, number][] }>(
+    `${PERPS_API}/klines?instrument_id=${instrumentId}&interval=1h&start_timestamp=${start}`,
+    300
+  );
+  return (data?.data ?? []).map((c) => ({
+    time: Math.floor(c[0] / 1000),
+    open: parseFloat(c[1]),
+    high: parseFloat(c[2]),
+    low: parseFloat(c[3]),
+    close: parseFloat(c[4]),
+    volumeBase: parseFloat(c[5]),
+  }));
+}
+
 /** Trailing-24h change + USD volume for one instrument, from hourly klines.
  *  Kline tuple: [ts, open, high, low, close, volume(base), trades]. Cached 5m. */
 async function get24hStats(
