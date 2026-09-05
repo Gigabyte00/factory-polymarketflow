@@ -182,10 +182,10 @@ export default async function BiggestBetsPage() {
           ) : <p className="text-sm text-muted-foreground">Loading…</p>}
         </div>
         <div className="terminal-card p-5">
-          <h2 className="text-sm font-semibold mb-2">Longest shot in the top 20</h2>
+          <h2 className="text-sm font-semibold mb-2">Best payout multiple in the top 20</h2>
           {longShot ? (
             <>
-              <p className="text-3xl font-bold font-mono">{(Number(longShot.price) * 100).toFixed(0)}¢</p>
+              <p className="text-3xl font-bold font-mono">{(1 / Number(longShot.price)).toFixed(1)}×</p>
               <p className="text-sm text-muted-foreground truncate">
                 {traderName(longShot)} · {formatCompact(Number(longShot.est_value_usd))} at risk pays {formatCompact(Number(longShot.payout_if_right))} · {longShot.side} · {longShot.question}
               </p>
