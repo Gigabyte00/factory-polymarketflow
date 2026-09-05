@@ -1,137 +1,196 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHash } from "crypto";
 
 const INGEST_API_KEY = process.env.INGEST_API_KEY || "";
 
+export const maxDuration = 60;
+
 /**
  * POST /api/insights
- * Generates a daily market insight post using market data.
- * Called by n8n daily at 8am ET.
- * Aggregates top movers + whale data into an editorial-style blog post.
+ * Generates the daily market briefing from ingested Polymarket data.
+ *
+ * History worth knowing (2026-09-05 rewrite). The previous version shipped three
+ * defects that made every briefing it ever wrote wrong, and 92 of them were
+ * archived rather than rewritten because no honest source for those days exists:
+ *   1. It filtered movers on `Math.abs(one_day_price_change) > 2`, but that column
+ *      is stored in PRICE UNITS (0.05 = 5 points), so the test demanded a 200-point
+ *      move and every post said "No significant gainers today."
+ *   2. It printed `top_holders.amount` — a SHARE count — with a dollar sign, so a
+ *      20.3M-share position read as "$20279K".
+ *   3. It repeated hardcoded corpus stats that drifted out of date.
+ * It also had no duplicate guard, so when the events ingest died in June it minted
+ * 61 byte-identical posts on 61 dated URLs. All four are addressed below.
  */
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${INGEST_API_KEY}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  return generateBriefing(new URL(request.url).searchParams.get("force") === "1");
+}
 
-  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { db: { schema: "pmflow" } });
+/** A price move of 5 points or more. `one_day_price_change` is in price units, not percent. */
+const MOVE_THRESHOLD = 0.05;
+const money = (n: number) =>
+  n >= 1_000_000_000 ? `$${(n / 1e9).toFixed(1)}B`
+  : n >= 1_000_000 ? `$${(n / 1e6).toFixed(1)}M`
+  : n >= 1_000 ? `$${(n / 1e3).toFixed(1)}K`
+  : `$${Math.round(n)}`;
+const shares = (n: number) =>
+  n >= 1_000_000 ? `${(n / 1e6).toFixed(1)}M` : n >= 1_000 ? `${(n / 1e3).toFixed(1)}K` : `${Math.round(n)}`;
+const pts = (n: number) => `${n >= 0 ? "+" : ""}${(n * 100).toFixed(1)} points`;
 
-  // 1. Gather data for the insight
+export async function generateBriefing(force = false) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: "Supabase env missing" }, { status: 500 });
+  }
+  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    db: { schema: "pmflow" },
+  });
+
   const today = new Date();
   const dateStr = today.toISOString().split("T")[0];
-  const formatted = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-
-  // Top movers
-  const { data: movers } = await db
-    .from("markets")
-    .select("question, one_day_price_change, outcome_prices, volume_24h, slug, category, events!inner(slug, title)")
-    .eq("active", true)
-    .not("one_day_price_change", "is", null)
-    .order("volume_24h", { ascending: false, nullsFirst: false })
-    .limit(80);
-
-  const sorted = (movers || [])
-    .filter((m: any) => Math.abs(m.one_day_price_change || 0) > 2)
-    .sort((a: any, b: any) => Math.abs(b.one_day_price_change) - Math.abs(a.one_day_price_change));
-
-  const topGainer = sorted.find((m: any) => m.one_day_price_change > 0);
-  const topLoser = sorted.find((m: any) => m.one_day_price_change < 0);
-
-  // Whale activity
-  const { data: whalePositions } = await db
-    .from("top_holders")
-    .select("wallet_name, wallet_address, amount, outcome_index, markets!inner(question, slug, events!inner(slug))")
-    .gt("amount", 20000)
-    .order("snapshot_at", { ascending: false })
-    .limit(5);
-
-  // Volume stats
-  const { data: volumeData } = await db
-    .from("events")
-    .select("volume_24h")
-    .eq("active", true);
-
-  const total24hVol = (volumeData || []).reduce((sum: number, e: any) => sum + (e.volume_24h || 0), 0);
-
-  // 2. Generate the insight content
-  const gainerText = topGainer ? `**${(topGainer as any).events?.title || topGainer.question}** surged ${(topGainer.one_day_price_change || 0).toFixed(1)}%, now trading at ${((topGainer.outcome_prices?.[0] || 0.5) * 100).toFixed(0)}% probability. Volume hit $${((topGainer.volume_24h || 0) / 1000).toFixed(0)}K in the past 24 hours.` : "No significant gainers today.";
-
-  const loserText = topLoser ? `**${(topLoser as any).events?.title || topLoser.question}** dropped ${Math.abs(topLoser.one_day_price_change || 0).toFixed(1)}%, now at ${((topLoser.outcome_prices?.[0] || 0.5) * 100).toFixed(0)}% probability.` : "No significant losers today.";
-
-  const whaleText = whalePositions && whalePositions.length > 0
-    ? whalePositions.slice(0, 3).map((h: any) => {
-        const name = h.wallet_name || `${(h.wallet_address || "").slice(0, 8)}...`;
-        const side = h.outcome_index === 0 ? "YES" : "NO";
-        const amount = h.amount >= 1000 ? `$${(h.amount / 1000).toFixed(0)}K` : `$${h.amount}`;
-        const question = ((h.markets as any)?.question || "").slice(0, 60);
-        return `- **${name}** holds ${amount} ${side} on "${question}"`;
-      }).join("\n")
-    : "No notable whale moves today.";
-
-  const title = `Market Intelligence — ${formatted}`;
+  const formatted = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
   const slug = `market-insight-${dateStr}`;
 
-  const content = `## Today's Market Overview
+  // Refuse to publish on stale data — the failure mode that produced 92 archived posts.
+  const { data: freshest } = await db.from("markets").select("synced_at").order("synced_at", { ascending: false }).limit(1);
+  const syncedAt = freshest?.[0]?.synced_at ? new Date(freshest[0].synced_at) : null;
+  const staleHours = syncedAt ? (Date.now() - syncedAt.getTime()) / 3_600_000 : Infinity;
+  if (staleHours > 6 && !force) {
+    return NextResponse.json({ status: "skipped", reason: "market data is stale", stale_hours: Math.round(staleHours) });
+  }
 
-Total 24h trading volume across all prediction markets: **$${(total24hVol / 1000000).toFixed(1)}M**
+  const [{ data: movers }, { data: volumeRows }, { data: positions }, { data: resolving }] = await Promise.all([
+    db.from("markets")
+      .select("question, one_day_price_change, one_week_price_change, outcome_prices, volume_24h, events!inner(slug, title)")
+      .eq("active", true).not("one_day_price_change", "is", null).gt("volume_24h", 10_000)
+      .order("volume_24h", { ascending: false, nullsFirst: false }).limit(150),
+    db.from("events").select("volume_24h").eq("active", true),
+    // Value-weighted, deduped, parked capital (>=95c) and complete sets already excluded.
+    db.rpc("biggest_open_positions", { p_days: 2, p_limit: 6 }),
+    db.from("markets")
+      .select("question, outcome_prices, volume, end_date, events!inner(slug, title)")
+      .eq("active", true)
+      .gte("end_date", today.toISOString())
+      .lt("end_date", new Date(today.getTime() + 7 * 86400_000).toISOString())
+      .order("volume", { ascending: false, nullsFirst: false }).limit(5),
+  ]);
 
-## Biggest Mover Up
+  const ranked = (movers || [])
+    .filter((m: any) => Math.abs(Number(m.one_day_price_change) || 0) >= MOVE_THRESHOLD)
+    .sort((a: any, b: any) => Math.abs(Number(b.one_day_price_change)) - Math.abs(Number(a.one_day_price_change)));
+  const gainer = ranked.find((m: any) => Number(m.one_day_price_change) > 0);
+  const loser = ranked.find((m: any) => Number(m.one_day_price_change) < 0);
+  const total24h = (volumeRows || []).reduce((s: number, e: any) => s + (Number(e.volume_24h) || 0), 0);
 
-${gainerText}
+  const describe = (m: any, verb: string) => {
+    const price = Number(m.outcome_prices?.[0] ?? 0.5) * 100;
+    const name = m.events?.title || m.question;
+    return `**${name}** ${verb} ${pts(Number(m.one_day_price_change))} to ${price.toFixed(0)}% on ${money(Number(m.volume_24h) || 0)} of 24-hour volume. The market asks: ${m.question}`;
+  };
 
-This market saw increased attention from both retail and whale traders.
+  const moversBlock = ranked.length === 0
+    ? `No market with meaningful volume moved 5 points or more in the last 24 hours. Quiet days are normal — most prediction markets only reprice when news arrives.`
+    : [
+        gainer ? `### Biggest gain\n\n${describe(gainer, "climbed")}` : null,
+        loser ? `### Biggest drop\n\n${describe(loser, "fell")}` : null,
+        ranked.length > 2
+          ? `${ranked.length} markets moved at least 5 points today. The full list is on the [movers page](/movers), and the [screener](/screener) filters by volume and anomaly score.`
+          : null,
+      ].filter(Boolean).join("\n\n");
 
-## Biggest Mover Down
+  // amount is a SHARE count; each winning share redeems for $1, so dollars at risk = shares x price.
+  const whaleBlock = (positions || []).length === 0
+    ? `No position cleared our reporting threshold in the latest holder snapshot.`
+    : (positions as any[]).slice(0, 4).map((p) => {
+        const name = p.display_name || `${String(p.wallet_address).slice(0, 8)}…`;
+        return `- **${name}** holds ${shares(Number(p.shares))} shares of ${p.side} on "${p.question}" at ${(Number(p.price) * 100).toFixed(0)}¢ — about ${money(Number(p.est_value_usd))} at risk, paying ${money(Number(p.payout_if_right))} if it resolves that way.`;
+      }).join("\n");
 
-${loserText}
+  const resolvingBlock = (resolving || []).length === 0
+    ? `Nothing sizeable resolves in the next seven days.`
+    : (resolving as any[]).map((m) => {
+        const day = new Date(m.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+        const price = Number(m.outcome_prices?.[0] ?? 0.5) * 100;
+        return `- **${day}** — ${m.question} (currently ${price.toFixed(0)}%, ${money(Number(m.volume) || 0)} traded)`;
+      }).join("\n");
 
-## Smart Money Activity
+  const title = `Market Intelligence — ${formatted}`;
+  const content = `## Today's market overview
 
-Notable whale positions detected in the last 24 hours:
+Active prediction markets traded ${money(total24h)} in the last 24 hours. Here is what moved, where the largest
+positions sit, and what resolves next.
 
-${whaleText}
+## What moved
 
-These positions represent significant capital commitments and may signal informed trading activity.
+${moversBlock}
 
-## What to Watch
+## Where the biggest money sits
 
-Markets approaching their resolution dates tend to see increased volatility as uncertainty resolves. Keep an eye on markets in the [Politics](/predictions/politics) and [Crypto](/predictions/crypto) categories for the biggest moves.
+Positions below are valued at the current price. Amounts are share counts; each winning share redeems for $1, so
+"at risk" is shares times price. Parked capital priced at 95¢ or higher and identical-size positions spread across
+every outcome of one event are excluded, because those are market-making rather than directional bets.
 
-Track all market movements in real-time with [PolymarketFlow](/pricing). Get instant alerts when whales move and markets spike.
+${whaleBlock}
+
+Full rankings on the [biggest bets page](/biggest-polymarket-bets), with wallet history in the
+[whale tracker](/whale-tracker) and new positions in the [free alerts feed](/alerts-feed).
+
+## Resolving in the next seven days
+
+${resolvingBlock}
+
+The full 31-day view is on the [resolution calendar](/calendar).
+
+## Where to look next
+
+Live trackers for the questions that draw the most attention: [Fed decision odds](/odds/fed-rate-cut) for cut,
+hold or hike at each remaining FOMC meeting, and [2026 midterm odds](/odds/2026-midterms) for control of Congress.
+Perpetual futures data, including funding rates, is on the [Perps screener](/perps/markets).
 
 ---
 
-*This insight was generated from PolymarketFlow's data pipeline, which tracks 1,100+ active prediction markets, 1,900+ whale wallets, and 150,000+ price data points.*`;
+*Generated from PolymarketFlow's ingested Polymarket data. Prices are market prices shown for information only,
+not advice. Trading availability depends on your jurisdiction.*`;
 
-  const excerpt = topGainer
-    ? `${(topGainer as any).events?.title || topGainer.question} surges ${(topGainer.one_day_price_change || 0).toFixed(1)}%. $${(total24hVol / 1000000).toFixed(1)}M in 24h volume across all markets.`
-    : `$${(total24hVol / 1000000).toFixed(1)}M in 24h prediction market volume. Here's what moved.`;
+  const excerpt = gainer
+    ? `${String((gainer as any).events?.title || gainer.question).slice(0, 90)} moved ${pts(Number(gainer.one_day_price_change))}. ${money(total24h)} traded across all markets in 24 hours.`
+    : `${money(total24h)} traded across prediction markets in the last 24 hours. Here is what moved and what resolves next.`;
 
-  // 3. Save to pmflow.posts
-  const { data: post, error } = await db.from("posts").upsert({
-    slug,
-    title,
-    content,
-    excerpt,
+  // Duplicate guard: identical output means the data did not change, and 61 identical
+  // posts on 61 dated URLs is exactly how this went wrong before.
+  const hash = createHash("sha256").update(content).digest("hex");
+  const { data: prev } = await db.from("posts")
+    .select("slug, content").eq("type", "briefing").neq("slug", slug)
+    .order("published_at", { ascending: false }).limit(1);
+  if (prev?.[0]?.content && createHash("sha256").update(prev[0].content).digest("hex") === hash && !force) {
+    return NextResponse.json({ status: "skipped", reason: "identical to the previous briefing", previous: prev[0].slug });
+  }
+
+  const { error } = await db.from("posts").upsert({
+    slug, title, content, excerpt,
     type: "briefing",
     category: "Market Insights",
     published: true,
     published_at: today.toISOString(),
-    read_time: "3 min read",
-    author: "PolymarketFlow",
-    meta_title: `${title} | PolymarketFlow`,
-    meta_description: excerpt,
-  }, { onConflict: "slug" }).select().single();
+    updated_at: today.toISOString(),
+    read_time: `${Math.max(3, Math.round(content.split(/\s+/).length / 220))} min read`,
+    author: "PolymarketFlow Research",
+    meta_title: `${title} | PolymarketFlow`.slice(0, 60),
+    meta_description: excerpt.slice(0, 155),
+  }, { onConflict: "slug" });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({
     status: "published",
     slug,
     title,
+    movers_found: ranked.length,
+    positions_found: (positions || []).length,
+    resolving_found: (resolving || []).length,
     url: `https://polymarketflow.com/blog/${slug}`,
   });
 }
