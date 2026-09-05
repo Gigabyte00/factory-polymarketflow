@@ -17,9 +17,9 @@ import { DataPagesNav } from "@/components/data-pages-nav";
 export const revalidate = 900; // 15 min
 
 export const metadata: Metadata = {
-  title: "Fed Rate Cut Odds — Live Prediction Market Probabilities",
+  title: "Fed Rate Odds — Cut, Hold or Hike at the Next FOMC Meeting (Live)",
   description:
-    "Live odds of a Federal Reserve rate cut at the next FOMC meeting, how many cuts traders expect in 2026, and where the fed funds rate ends the year — from Polymarket prediction markets, updated every 15 minutes.",
+    "Live prediction-market odds for the next Fed decision — cut, hold or hike — plus every remaining 2026 FOMC meeting, how many cuts traders expect this year, and where the fed funds rate ends 2026. From Polymarket, updated every 15 minutes.",
   alternates: { canonical: "/odds/fed-rate-cut" },
   openGraph: {
     title: "Fed Rate Cut Odds — Live Tracker | PolymarketFlow",
@@ -52,6 +52,11 @@ const FAQ_ITEMS = [
     question: "When is the next Fed meeting?",
     answer:
       "The FOMC's remaining scheduled 2026 meetings conclude on September 16, October 28 and December 9, with the rate decision published at 2:00 p.m. ET on the final day. The odds on this page refresh continuously as each date approaches.",
+  },
+  {
+    question: "What do cut, hold and hike mean on this page?",
+    answer:
+      "Each FOMC meeting has separate Polymarket markets for the size of the move: a cut of 25 bps or 50+ bps, no change (hold), or a hike of 25 bps or 50+ bps. We show each market's Yes price; the Cut and Hike headline numbers add the two sizes together.",
   },
   {
     question: "What does 'rate cut by the September meeting' mean?",
@@ -115,6 +120,36 @@ export default async function FedRateCutOddsPage() {
   const bySlug = (s: string) => (events || []).find((e: any) => e.slug === s) as any;
   const today = new Date().toISOString().slice(0, 10);
 
+  // Per-meeting decision markets ("Fed Decision in September?" etc.) — the slugs carry
+  // unpredictable suffixes, so match on title.
+  const { data: decisionEvents } = await db
+    .from("events")
+    .select("slug, title, end_date, volume_24h, markets(question, outcome_prices, volume_24h, one_day_price_change, one_week_price_change)")
+    .eq("active", true)
+    .ilike("title", "Fed decision in %")
+    .gte("end_date", today)
+    .order("end_date", { ascending: true });
+
+  const decisions = ((decisionEvents || []) as any[]).map((e) => {
+    const pick = (re: RegExp) => {
+      const m = (e.markets || []).find((x: any) => re.test(x.question || ""));
+      return m ? { pct: yesPct(m), d1: pts(m.one_day_price_change), d7: pts(m.one_week_price_change) } : null;
+    };
+    return {
+      slug: e.slug as string,
+      title: e.title as string,
+      date: String(e.end_date).slice(0, 10),
+      v24: Number(e.volume_24h || 0),
+      cut50: pick(/decrease.*50\+/i),
+      cut25: pick(/decrease.*25 bps/i),
+      hold: pick(/no change/i),
+      hike25: pick(/increase.*25 bps/i),
+      hike50: pick(/increase.*50\+/i),
+    };
+  });
+  const nextDecision = decisions[0] ?? null;
+  const sumPct = (...xs: ({ pct: number | null } | null)[]) => xs.reduce((s, x) => s + (x?.pct ?? 0), 0);
+
   // Cumulative "cut by <meeting>" ladder — future meetings only
   const cutBy = ((bySlug(SLUGS.cutBy)?.markets || []) as any[])
     .map((m) => {
@@ -124,7 +159,6 @@ export default async function FedRateCutOddsPage() {
     })
     .filter((r) => r.date && r.date >= today && r.pct != null)
     .sort((a, b) => a.date!.localeCompare(b.date!));
-  const next = cutBy[0] ?? null;
 
   const counts = ((bySlug(SLUGS.count)?.markets || []) as any[])
     .map((m) => {
@@ -181,10 +215,10 @@ export default async function FedRateCutOddsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Percent className="h-6 w-6 text-primary" />
-          Fed Rate Cut Odds — Live Tracker
+          Fed Rate Odds — Live Tracker
         </h1>
         <p className="text-muted-foreground text-sm mt-1 max-w-2xl">
-          What real-money traders on Polymarket expect from the Federal Reserve: the odds of a cut at each
+          What real-money traders on Polymarket expect from the Federal Reserve: cut, hold or hike at each
           remaining 2026 meeting, how many cuts this year, and where the fed funds rate finishes December.
           {totalVol > 0 && <> {formatCompact(totalVol)} traded across these markets.</>} Updated ~every 15
           minutes (last build {now.toISOString().slice(0, 16).replace("T", " ")} UTC).
@@ -195,16 +229,21 @@ export default async function FedRateCutOddsPage() {
       <div className="grid md:grid-cols-3 gap-4 mb-8">
         <div className="terminal-card p-5">
           <h2 className="text-sm font-semibold mb-3">
-            Rate cut by the {next ? `${next.month} ${fmtDate(next.date!)}` : "next"} meeting
+            Next FOMC decision{nextDecision ? ` — ${fmtDate(nextDecision.date)}` : ""}
           </h2>
-          {next ? (
+          {nextDecision ? (
             <>
-              <p className="text-3xl font-bold font-mono">{next.pct!.toFixed(0)}%</p>
-              <p className="text-sm text-muted-foreground">chance of at least one cut by then</p>
-              <p className="mt-1 flex gap-3"><Change v={next.d1} suffix="today" /><Change v={next.d7} suffix="7d" /></p>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div><p className="text-2xl font-bold font-mono">{sumPct(nextDecision.cut25, nextDecision.cut50).toFixed(0)}%</p><p className="text-[11px] text-muted-foreground">Cut</p></div>
+                <div><p className="text-2xl font-bold font-mono">{(nextDecision.hold?.pct ?? 0).toFixed(0)}%</p><p className="text-[11px] text-muted-foreground">Hold</p></div>
+                <div><p className="text-2xl font-bold font-mono">{sumPct(nextDecision.hike25, nextDecision.hike50).toFixed(0)}%</p><p className="text-[11px] text-muted-foreground">Hike</p></div>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {formatCompact(nextDecision.v24)} traded in 24h · hold <Change v={nextDecision.hold?.d7 ?? null} suffix="7d" />
+              </p>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">No scheduled 2026 meeting remaining in this series.</p>
+            <p className="text-sm text-muted-foreground">No upcoming meeting market is live yet.</p>
           )}
         </div>
         <div className="terminal-card p-5">
@@ -234,6 +273,41 @@ export default async function FedRateCutOddsPage() {
           )}
         </div>
       </div>
+
+      {/* Meeting-by-meeting decision odds */}
+      {decisions.length > 0 && (
+        <div className="terminal-card overflow-x-auto mb-8">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
+                <th className="px-3 py-2.5 text-left font-semibold">FOMC meeting</th>
+                <th className="px-3 py-2.5 text-right font-semibold">Cut 50+</th>
+                <th className="px-3 py-2.5 text-right font-semibold">Cut 25</th>
+                <th className="px-3 py-2.5 text-right font-semibold">Hold</th>
+                <th className="px-3 py-2.5 text-right font-semibold">Hike 25</th>
+                <th className="px-3 py-2.5 text-right font-semibold">Hike 50+</th>
+                <th className="px-3 py-2.5 text-right font-semibold">24h vol</th>
+              </tr>
+            </thead>
+            <tbody>
+              {decisions.map((d) => (
+                <tr key={d.slug} className="border-b border-border/50 last:border-0 hover:bg-accent/30">
+                  <td className="px-3 py-2.5">
+                    <Link href={`/market/${d.slug}`} className="hover:text-primary transition-colors">{fmtDate(d.date)} — {d.title}</Link>
+                  </td>
+                  {[d.cut50, d.cut25, d.hold, d.hike25, d.hike50].map((c, i) => (
+                    <td key={i} className={cn("px-3 py-2.5 text-right font-mono", c?.pct != null && c.pct >= 40 ? "font-semibold" : "text-muted-foreground")}>
+                      {c?.pct != null ? `${c.pct < 1 ? "<1" : c.pct.toFixed(0)}%` : "—"}
+                    </td>
+                  ))}
+                  <td className="px-3 py-2.5 text-right font-mono">{formatCompact(d.v24)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="px-3 py-2 text-[11px] text-muted-foreground">Each column is that outcome&apos;s Polymarket &quot;Yes&quot; price; bold = 40% or more.</p>
+        </div>
+      )}
 
       {/* Cut-by ladder */}
       <div className="terminal-card p-5 mb-8">

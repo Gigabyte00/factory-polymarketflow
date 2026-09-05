@@ -35,7 +35,7 @@ const FAQ_ITEMS = [
   {
     question: "Are all Polymarket markets on this calendar?",
     answer:
-      "It lists the active markets in our dataset whose end date falls in the next 31 days. Markets with far-off or open-ended resolution (many 'by end of year' markets, for example) appear only once they enter the window.",
+      "It lists the 800 highest-volume active markets whose end date falls in the next 31 days, so small daily sports and crypto markets may be omitted. Markets with far-off or open-ended resolution (many 'by end of year' markets, for example) appear only once they enter the window.",
   },
   {
     question: "What time zone are the dates in?",
@@ -100,9 +100,8 @@ export default async function CalendarPage() {
     .eq("active", true)
     .gte("end_date", now.toISOString())
     .lt("end_date", until.toISOString())
-    .order("end_date", { ascending: true })
     .order("volume", { ascending: false, nullsFirst: false })
-    .limit(600);
+    .limit(800);
 
   const today = now.toISOString().slice(0, 10);
   const days = new Map<string, Map<string, EventGroup>>();
@@ -142,9 +141,9 @@ export default async function CalendarPage() {
           Polymarket Resolution Calendar
         </h1>
         <p className="text-muted-foreground text-sm mt-1 max-w-2xl">
-          {totalMarkets} markets across {dayKeys.length} days are scheduled to resolve in the next 31 days.
-          Grouped by end date (UTC) and event, with the current leader and total volume. Updated ~every 15
-          minutes (last build {now.toISOString().slice(0, 16).replace("T", " ")} UTC).
+          The {totalMarkets} highest-volume markets scheduled to resolve in the next 31 days, across{" "}
+          {dayKeys.length} days — grouped by end date (UTC) and event, with the current leader and total
+          volume. Updated ~every 15 minutes (last build {now.toISOString().slice(0, 16).replace("T", " ")} UTC).
         </p>
       </div>
 
@@ -157,14 +156,16 @@ export default async function CalendarPage() {
           const bucket = bucketOf(d, today);
           const showBucket = bucket !== lastBucket;
           lastBucket = bucket;
-          const groups = [...days.get(d)!.values()].sort((a, b) => b.vol - a.vol);
-          const dayVol = groups.reduce((s, g) => s + g.vol, 0);
+          const all = [...days.get(d)!.values()].sort((a, b) => b.vol - a.vol);
+          const groups = all.slice(0, 12);
+          const hidden = all.length - groups.length;
+          const dayVol = all.reduce((s, g) => s + g.vol, 0);
           return (
             <div key={d}>
               {showBucket && <h2 className="text-lg font-bold mb-3 mt-2">{bucket}</h2>}
               <div className="flex items-baseline justify-between mb-2">
                 <h3 className="text-sm font-semibold">{dayLabel(d)}</h3>
-                <span className="text-[11px] text-muted-foreground">{groups.length} events · {formatCompact(dayVol)} volume</span>
+                <span className="text-[11px] text-muted-foreground">{all.length} events · {formatCompact(dayVol)} volume</span>
               </div>
               <div className="terminal-card divide-y divide-border/50">
                 {groups.map((g) => (
@@ -182,6 +183,9 @@ export default async function CalendarPage() {
                     <span className={cn("text-xs font-mono flex-shrink-0", g.vol >= 1_000_000 ? "text-primary" : "text-muted-foreground")}>{formatCompact(g.vol)}</span>
                   </Link>
                 ))}
+                {hidden > 0 && (
+                  <p className="px-4 py-2 text-[11px] text-muted-foreground">+ {hidden} more lower-volume events resolve this day</p>
+                )}
               </div>
             </div>
           );

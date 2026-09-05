@@ -84,19 +84,32 @@ export default async function Midterms2026Page() {
 
   const now = new Date();
 
-  // Leading outcome for an event's top-volume market
+  // "Will the Democratic Party control the House after…?" → "Democratic Party";
+  // "2026 Balance of Power: R Senate, R House" → "R Senate, R House"
+  const shortLabel = (q: string) => {
+    if (/balance of power:/i.test(q)) return q.split(":").slice(1).join(":").trim();
+    let s = (q || "").replace(/^Will\s+(the\s+)?/i, "").replace(/\?$/, "");
+    const cut = s.search(/\s+(control|win|be)\s+/i);
+    if (cut > 0) s = s.slice(0, cut);
+    return s.length > 30 ? `${s.slice(0, 29)}…` : s;
+  };
+  const pts = (x: any) => (x == null ? null : Number(x) * 100); // stored in price units (0.05 = 5 points)
+
+  // Leading outcome: for a single-market event the higher-priced side; for a
+  // multi-outcome event the market with the highest Yes price (0-volume placeholders ignored)
   const lead = (markets: any[]) => {
-    const m = [...(markets || [])].sort((a, b) => (b.volume || 0) - (a.volume || 0))[0];
-    if (!m || !Array.isArray(m.outcome_prices) || m.outcome_prices.length === 0) return null;
-    let idx = 0;
-    for (let i = 1; i < m.outcome_prices.length; i++) if (m.outcome_prices[i] > m.outcome_prices[idx]) idx = i;
-    return {
-      market: m,
-      outcome: Array.isArray(m.outcomes) ? m.outcomes[idx] ?? "Yes" : "Yes",
-      pct: Number(m.outcome_prices[idx]) * 100,
-      // stored in price units (0.05 = 5 points)
-      d1: m.one_day_price_change == null ? null : Number(m.one_day_price_change) * 100,
-    };
+    const ms = (markets || []).filter((m) => Array.isArray(m.outcome_prices) && m.outcome_prices.length > 0);
+    if (ms.length === 0) return null;
+    if (ms.length === 1) {
+      const m = ms[0];
+      let idx = 0;
+      for (let i = 1; i < m.outcome_prices.length; i++) if (Number(m.outcome_prices[i]) > Number(m.outcome_prices[idx])) idx = i;
+      return { market: m, outcome: Array.isArray(m.outcomes) ? m.outcomes[idx] ?? "Yes" : "Yes", pct: Number(m.outcome_prices[idx]) * 100, d1: pts(m.one_day_price_change) };
+    }
+    const real = ms.filter((m) => Number(m.volume || 0) > 0);
+    const pool = real.length ? real : ms;
+    const m = pool.reduce((b, x) => (Number(x.outcome_prices[0]) > Number(b.outcome_prices[0]) ? x : b), pool[0]);
+    return { market: m, outcome: shortLabel(m.question || ""), pct: Number(m.outcome_prices[0]) * 100, d1: pts(m.one_day_price_change) };
   };
 
   const headlines = HEADLINE_SLUGS
