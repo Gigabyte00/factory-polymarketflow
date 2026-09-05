@@ -32,6 +32,15 @@ export async function POST(request: Request) {
 
 /** A price move of 5 points or more. `one_day_price_change` is in price units, not percent. */
 const MOVE_THRESHOLD = 0.05;
+/** A market pinned at 0 or 1 has settled. A football match ending 1-0 is not news, it is the
+ *  scoreboard, and it dominates any naive "biggest mover" ranking. Only report repricing in
+ *  markets whose outcome is still genuinely in doubt. */
+const LIVE_MIN = 0.03;
+const LIVE_MAX = 0.97;
+const stillLive = (m: any) => {
+  const p = Number(m.outcome_prices?.[0] ?? 0.5);
+  return p >= LIVE_MIN && p <= LIVE_MAX;
+};
 const money = (n: number) =>
   n >= 1_000_000_000 ? `$${(n / 1e9).toFixed(1)}B`
   : n >= 1_000_000 ? `$${(n / 1e6).toFixed(1)}M`
@@ -75,11 +84,11 @@ export async function generateBriefing(force = false) {
       .eq("active", true)
       .gte("end_date", today.toISOString())
       .lt("end_date", new Date(today.getTime() + 7 * 86400_000).toISOString())
-      .order("volume", { ascending: false, nullsFirst: false }).limit(5),
+      .order("volume", { ascending: false, nullsFirst: false }).limit(40),
   ]);
 
   const ranked = (movers || [])
-    .filter((m: any) => Math.abs(Number(m.one_day_price_change) || 0) >= MOVE_THRESHOLD)
+    .filter((m: any) => stillLive(m) && Math.abs(Number(m.one_day_price_change) || 0) >= MOVE_THRESHOLD)
     .sort((a: any, b: any) => Math.abs(Number(b.one_day_price_change)) - Math.abs(Number(a.one_day_price_change)));
   const gainer = ranked.find((m: any) => Number(m.one_day_price_change) > 0);
   const loser = ranked.find((m: any) => Number(m.one_day_price_change) < 0);
@@ -92,12 +101,12 @@ export async function generateBriefing(force = false) {
   };
 
   const moversBlock = ranked.length === 0
-    ? `No market with meaningful volume moved 5 points or more in the last 24 hours. Quiet days are normal — most prediction markets only reprice when news arrives.`
+    ? `No market with an open outcome moved 5 points or more in the last 24 hours. Quiet days are normal — most prediction markets only reprice when news arrives.`
     : [
         gainer ? `### Biggest gain\n\n${describe(gainer, "climbed")}` : null,
         loser ? `### Biggest drop\n\n${describe(loser, "fell")}` : null,
         ranked.length > 2
-          ? `${ranked.length} markets moved at least 5 points today. The full list is on the [movers page](/movers), and the [screener](/screener) filters by volume and anomaly score.`
+          ? `${ranked.length} markets with outcomes still in doubt moved at least 5 points today; markets that simply settled are excluded. The full list is on the [movers page](/movers), and the [screener](/screener) filters by volume and anomaly score.`
           : null,
       ].filter(Boolean).join("\n\n");
 
@@ -109,9 +118,11 @@ export async function generateBriefing(force = false) {
         return `- **${name}** holds ${shares(Number(p.shares))} shares of ${p.side} on "${p.question}" at ${(Number(p.price) * 100).toFixed(0)}¢ — about ${money(Number(p.est_value_usd))} at risk, paying ${money(Number(p.payout_if_right))} if it resolves that way.`;
       }).join("\n");
 
-  const resolvingBlock = (resolving || []).length === 0
-    ? `Nothing sizeable resolves in the next seven days.`
-    : (resolving as any[]).map((m) => {
+  // Same filter: a market already at 100% is waiting on settlement, not on an outcome.
+  const upcoming = (resolving as any[] || []).filter(stillLive).slice(0, 5);
+  const resolvingBlock = upcoming.length === 0
+    ? `Nothing with an open outcome resolves in the next seven days.`
+    : upcoming.map((m) => {
         const day = new Date(m.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
         const price = Number(m.outcome_prices?.[0] ?? 0.5) * 100;
         return `- **${day}** — ${m.question} (currently ${price.toFixed(0)}%, ${money(Number(m.volume) || 0)} traded)`;
@@ -190,7 +201,7 @@ not advice. Trading availability depends on your jurisdiction.*`;
     title,
     movers_found: ranked.length,
     positions_found: (positions || []).length,
-    resolving_found: (resolving || []).length,
+    resolving_found: upcoming.length,
     url: `https://polymarketflow.com/blog/${slug}`,
   });
 }
