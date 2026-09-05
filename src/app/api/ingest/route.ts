@@ -8,6 +8,23 @@ const DATA_BASE = "https://data-api.polymarket.com";
 // Simple API key auth for the ingest endpoint
 const INGEST_API_KEY = process.env.INGEST_API_KEY || "pmflow-ingest-secret";
 
+// The events task fetches the top ~1,100 events by 24h volume. These slugs power the
+// /odds pages and must stay fresh even when they fall outside that window.
+const PINNED_EVENT_SLUGS = [
+  "which-party-will-win-the-house-in-2026",
+  "which-party-will-win-the-senate-in-2026",
+  "balance-of-power-2026-midterms",
+  "fed-rate-cut-by-629",
+  "how-many-fed-rate-cuts-in-2026",
+  "what-will-the-fed-rate-be-at-the-end-of-2026",
+  "fed-rate-hike-in-2026",
+  "fed-emergency-rate-cut-before-2027",
+];
+
+// A full events run (11 Gamma pages + ~10k market upserts) takes 15-40s; the
+// holders task ~20s. Pro plan allows up to 300s.
+export const maxDuration = 120;
+
 /**
  * Infer category from title/description when Polymarket API returns null.
  */
@@ -89,27 +106,15 @@ export async function POST(request: Request) {
   if (tasks.includes("events")) {
     try {
       checkTimeout();
-      let allEvents: any[] = [];
-      let offset = 0;
       const limit = 100;
-      let hasMore = true;
+      const MAX_PAGES = 8; // top 800 events by 24h volume
+      const MAX_MARKETS_PER_EVENT = 60; // big multi-outcome events carry 100+ long-tail markets
+      const seenEvents = new Set<string>();
+      const seenMarkets = new Set<string>();
+      let eventCount = 0;
+      let marketCount = 0;
 
-      // Paginate through all active events
-      while (hasMore) {
-        const res = await fetch(
-          `${GAMMA_BASE}/events?active=true&closed=false&limit=${limit}&offset=${offset}`
-        );
-        if (!res.ok) throw new Error(`Gamma API ${res.status}`);
-        const events = await res.json();
-        allEvents = allEvents.concat(events);
-        hasMore = events.length === limit;
-        offset += limit;
-        // Safety: cap at 1000 events
-        if (offset > 1000) break;
-      }
-
-      // Upsert events
-      const eventRows = allEvents.map((e: any) => ({
+      const toEventRow = (e: any) => ({
         id: String(e.id),
         slug: e.slug,
         title: e.title,
@@ -136,71 +141,123 @@ export async function POST(request: Request) {
         neg_risk: e.negRisk ?? false,
         tags: e.tags || [],
         synced_at: new Date().toISOString(),
-      }));
+      });
 
-      if (eventRows.length > 0) {
-        const { error: eventError } = await pmflow
-          .from("events")
-          .upsert(eventRows, { onConflict: "id" });
-        if (eventError) throw eventError;
-      }
+      const toMarketRow = (m: any, event: any) => {
+        let outcomes, outcomePrices, clobTokenIds;
+        try { outcomes = JSON.parse(m.outcomes || '["Yes","No"]'); } catch { outcomes = ["Yes", "No"]; }
+        try { outcomePrices = JSON.parse(m.outcomePrices || '[0.5,0.5]'); } catch { outcomePrices = [0.5, 0.5]; }
+        try { clobTokenIds = JSON.parse(m.clobTokenIds || '[]'); } catch { clobTokenIds = []; }
+        return {
+          id: String(m.id),
+          event_id: String(event.id),
+          condition_id: m.conditionId,
+          slug: m.slug,
+          question: m.question,
+          description: m.description?.substring(0, 5000),
+          image: m.image,
+          outcomes,
+          outcome_prices: outcomePrices.map(Number),
+          clob_token_ids: clobTokenIds,
+          volume: parseFloat(m.volume || "0"),
+          volume_24h: m.volume24hr || 0,
+          volume_1w: m.volume1wk || 0,
+          volume_1m: m.volume1mo || 0,
+          liquidity: m.liquidityNum || 0,
+          best_bid: m.bestBid,
+          best_ask: m.bestAsk,
+          last_trade_price: m.lastTradePrice,
+          spread: m.spread,
+          one_day_price_change: m.oneDayPriceChange,
+          one_week_price_change: m.oneWeekPriceChange,
+          one_month_price_change: m.oneMonthPriceChange,
+          enable_order_book: m.enableOrderBook ?? true,
+          active: m.active ?? true,
+          closed: m.closed ?? false,
+          end_date: m.endDate,
+          category: m.category || event.category,
+          synced_at: new Date().toISOString(),
+        };
+      };
 
-      // Upsert markets from all events
-      const marketRows: any[] = [];
-      for (const event of allEvents) {
-        if (!event.markets) continue;
-        for (const m of event.markets) {
-          let outcomes, outcomePrices, clobTokenIds;
-          try { outcomes = JSON.parse(m.outcomes || '["Yes","No"]'); } catch { outcomes = ["Yes", "No"]; }
-          try { outcomePrices = JSON.parse(m.outcomePrices || '[0.5,0.5]'); } catch { outcomePrices = [0.5, 0.5]; }
-          try { clobTokenIds = JSON.parse(m.clobTokenIds || '[]'); } catch { clobTokenIds = []; }
-
-          marketRows.push({
-            id: String(m.id),
-            event_id: String(event.id),
-            condition_id: m.conditionId,
-            slug: m.slug,
-            question: m.question,
-            description: m.description?.substring(0, 5000),
-            image: m.image,
-            outcomes,
-            outcome_prices: outcomePrices.map(Number),
-            clob_token_ids: clobTokenIds,
-            volume: parseFloat(m.volume || "0"),
-            volume_24h: m.volume24hr || 0,
-            volume_1w: m.volume1wk || 0,
-            volume_1m: m.volume1mo || 0,
-            liquidity: m.liquidityNum || 0,
-            best_bid: m.bestBid,
-            best_ask: m.bestAsk,
-            last_trade_price: m.lastTradePrice,
-            spread: m.spread,
-            one_day_price_change: m.oneDayPriceChange,
-            one_week_price_change: m.oneWeekPriceChange,
-            one_month_price_change: m.oneMonthPriceChange,
-            enable_order_book: m.enableOrderBook ?? true,
-            active: m.active ?? true,
-            closed: m.closed ?? false,
-            end_date: m.endDate,
-            category: m.category || event.category,
-            synced_at: new Date().toISOString(),
-          });
+      // Upsert one page of events + their markets, then let it go — a single
+      // volume-ordered page is ~12 MB / ~3,000 markets, so never hold them all.
+      // Ids are deduped across the run: a repeat breaks the upsert with
+      // "ON CONFLICT DO UPDATE command cannot affect row a second time".
+      const processEvents = async (events: any[]) => {
+        const eventRows: any[] = [];
+        const marketRows: any[] = [];
+        for (const e of events) {
+          const id = String(e.id);
+          if (seenEvents.has(id)) continue;
+          seenEvents.add(id);
+          eventRows.push(toEventRow(e));
+          const markets = [...(e.markets || [])]
+            .sort((a: any, b: any) => parseFloat(b.volume || "0") - parseFloat(a.volume || "0"))
+            .slice(0, MAX_MARKETS_PER_EVENT);
+          for (const m of markets) {
+            const mid = String(m.id);
+            if (seenMarkets.has(mid)) continue;
+            seenMarkets.add(mid);
+            marketRows.push(toMarketRow(m, e));
+          }
         }
+        if (eventRows.length > 0) {
+          const { error } = await pmflow.from("events").upsert(eventRows, { onConflict: "id" });
+          if (error) throw error;
+          eventCount += eventRows.length;
+        }
+        const batches: any[][] = [];
+        for (let i = 0; i < marketRows.length; i += 500) batches.push(marketRows.slice(i, i + 500));
+        for (let i = 0; i < batches.length; i += 3) {
+          const settled = await Promise.all(
+            batches.slice(i, i + 3).map((b) => pmflow.from("markets").upsert(b, { onConflict: "id" }))
+          );
+          for (const r of settled) if (r.error) throw r.error;
+        }
+        marketCount += marketRows.length;
+      };
+
+      // Paginate through the most-traded active events. Gamma's default order is
+      // oldest-first, which is how this sync spent months tracking dead markets.
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const res = await fetch(
+          `${GAMMA_BASE}/events?active=true&closed=false&order=volume24hr&ascending=false&limit=${limit}&offset=${page * limit}`
+        );
+        if (!res.ok) throw new Error(`Gamma API ${res.status}`);
+        const events = await res.json();
+        if (!Array.isArray(events) || events.length === 0) break;
+        await processEvents(events);
+        if (events.length < limit) break;
       }
 
-      // Batch upsert markets (100 at a time to avoid payload limits)
-      let marketCount = 0;
-      for (let i = 0; i < marketRows.length; i += 100) {
-        const batch = marketRows.slice(i, i + 100);
-        const { error: marketError } = await pmflow
-          .from("markets")
-          .upsert(batch, { onConflict: "id" });
-        if (marketError) throw marketError;
-        marketCount += batch.length;
+      // Pinned events (odds pages) — fetched individually so they never go stale
+      for (const slug of PINNED_EVENT_SLUGS) {
+        try {
+          const res = await fetch(`${GAMMA_BASE}/events?slug=${encodeURIComponent(slug)}`);
+          if (!res.ok) continue;
+          const found = await res.json();
+          if (Array.isArray(found) && found.length > 0) await processEvents(found);
+        } catch { /* skip */ }
       }
 
-      results.events = { success: true, count: eventRows.length };
+      results.events = { success: true, count: eventCount };
       results.markets = { success: true, count: marketCount };
+
+      // Retire rows this run did not refresh: past their end date, or unseen among
+      // the top markets for a week. Keeps `active = true` meaning "currently tracked".
+      try {
+        const oneHourAgo = new Date(Date.now() - 3600_000).toISOString();
+        const twoDaysAgo = new Date(Date.now() - 2 * 86400_000).toISOString();
+        const sevenDaysAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
+        for (const table of ["markets", "events"] as const) {
+          await pmflow.from(table).update({ active: false }).eq("active", true).lt("synced_at", oneHourAgo).lt("end_date", twoDaysAgo);
+          await pmflow.from(table).update({ active: false }).eq("active", true).lt("synced_at", sevenDaysAgo);
+        }
+        results.cleanup = { success: true };
+      } catch (err: any) {
+        results.cleanup = { success: false, error: err.message };
+      }
     } catch (err: any) {
       results.events = { success: false, error: err.message };
     }

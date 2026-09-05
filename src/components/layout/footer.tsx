@@ -44,6 +44,10 @@ export function Footer() {
               <li><Link href="/predictions/crypto" className="hover:text-foreground transition-colors">Crypto</Link></li>
               <li><Link href="/predictions/sports" className="hover:text-foreground transition-colors">Sports</Link></li>
               <li><Link href="/predictions/economics" className="hover:text-foreground transition-colors">Economics</Link></li>
+              <li><Link href="/odds/2026-midterms" className="hover:text-foreground transition-colors">Midterm Odds</Link></li>
+              <li><Link href="/odds/fed-rate-cut" className="hover:text-foreground transition-colors">Fed Rate Odds</Link></li>
+              <li><Link href="/biggest-polymarket-bets" className="hover:text-foreground transition-colors">Biggest Bets</Link></li>
+              <li><Link href="/calendar" className="hover:text-foreground transition-colors">Resolution Calendar</Link></li>
               <li><Link href="/accuracy" className="hover:text-foreground transition-colors">Accuracy</Link></li>
               <li><Link href="/scorecard" className="hover:text-foreground transition-colors">Scorecard</Link></li>
             </ul>

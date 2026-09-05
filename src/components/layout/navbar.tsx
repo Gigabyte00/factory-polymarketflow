@@ -8,13 +8,16 @@ import {
   BarChart3,
   Bell,
   BookOpen,
+  CalendarDays,
   CreditCard,
   Filter,
   Flame,
   Globe,
+  Landmark,
   LayoutDashboard,
   LineChart,
   Menu,
+  Percent,
   Search,
   Settings,
   Star,
@@ -34,6 +37,7 @@ const navLinks: NavLink[] = [
   { href: "/markets", label: "Markets", icon: LayoutDashboard },
   { href: "/movers", label: "Movers", icon: TrendingUp },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/odds", label: "Odds", icon: Landmark },
 ];
 
 // Shown only while the perps_live flag is on (passed down from the root
@@ -57,6 +61,15 @@ const mobileMenuSections: { title: string; links: NavLink[] }[] = [
       { href: "/predictions/politics", label: "Politics", icon: Globe },
       { href: "/predictions/crypto", label: "Crypto", icon: LineChart },
       { href: "/predictions/sports", label: "Sports", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "Live Data",
+    links: [
+      { href: "/odds/2026-midterms", label: "Midterm Odds", icon: Landmark },
+      { href: "/odds/fed-rate-cut", label: "Fed Rate Odds", icon: Percent },
+      { href: "/biggest-polymarket-bets", label: "Biggest Bets", icon: Trophy },
+      { href: "/calendar", label: "Resolution Calendar", icon: CalendarDays },
     ],
   },
   {

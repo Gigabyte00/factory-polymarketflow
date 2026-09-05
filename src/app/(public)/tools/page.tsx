@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Bell, Brain, Filter, LineChart, Star, TrendingUp, Users, Wallet, Zap } from "lucide-react";
+import { Activity, BarChart3, Bell, Brain, CalendarDays, Filter, Landmark, LineChart, Percent, Star, TrendingUp, Trophy, Users, Wallet, Zap } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -22,6 +22,10 @@ const tools = [
   { name: "Portfolio Tracker", desc: "Connect your Polymarket wallet to track positions, P&L, and performance over time.", href: "/portfolio", icon: Wallet, tier: "starter" },
   { name: "AI Briefings", desc: "Daily AI-powered market intelligence reports. What moved, why, and what to watch next.", href: "/briefings", icon: Brain, tier: "pro" },
   { name: "Smart Money Scores", desc: "Proprietary scoring system for whale wallets. Track the most profitable and consistent traders.", href: "/scorecard", icon: Zap, tier: "pro" },
+  { name: "Midterm Odds Tracker", desc: "Live 2026 House, Senate and governor odds from Polymarket, refreshed every 15 minutes.", href: "/odds/2026-midterms", icon: Landmark, tier: "free" },
+  { name: "Fed Rate Cut Odds", desc: "Cut odds for every remaining FOMC meeting, cuts expected in 2026 and the year-end rate.", href: "/odds/fed-rate-cut", icon: Percent, tier: "free" },
+  { name: "Biggest Bets", desc: "The largest whale positions by dollars at risk and the biggest new bets this week.", href: "/biggest-polymarket-bets", icon: Trophy, tier: "free" },
+  { name: "Resolution Calendar", desc: "Every market resolving in the next 31 days, grouped by day with leaders and volume.", href: "/calendar", icon: CalendarDays, tier: "free" },
 ];
 
 export default function ToolsPage() {
