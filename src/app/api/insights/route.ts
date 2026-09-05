@@ -97,7 +97,10 @@ export async function generateBriefing(force = false) {
   const describe = (m: any, verb: string) => {
     const price = Number(m.outcome_prices?.[0] ?? 0.5) * 100;
     const name = m.events?.title || m.question;
-    return `**${name}** ${verb} ${pts(Number(m.one_day_price_change))} to ${price.toFixed(0)}% on ${money(Number(m.volume_24h) || 0)} of 24-hour volume. The market asks: ${m.question}`;
+    // Multi-outcome events carry a distinct question per market; single-market events
+    // repeat the title, and printing both reads as a stutter.
+    const asks = m.question && m.question !== name ? ` The market asks: ${m.question}` : "";
+    return `**${name}** ${verb} ${pts(Number(m.one_day_price_change))} to ${price.toFixed(0)}% on ${money(Number(m.volume_24h) || 0)} of 24-hour volume.${asks}`;
   };
 
   const moversBlock = ranked.length === 0
