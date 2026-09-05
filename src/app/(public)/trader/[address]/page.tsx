@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import { Users, TrendingUp, BarChart3, Trophy, ExternalLink, Calendar } from "lucide-react";
-import { cn, formatCompact, truncateAddress, formatProbability } from "@/lib/utils";
+import { cn, formatCompact, formatShares, truncateAddress, formatProbability } from "@/lib/utils";
 import { BreadcrumbSchema } from "@/components/structured-data";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -126,7 +126,7 @@ export default async function TraderProfilePage({ params }: Props) {
                       </p>
                     </div>
                     <div className="text-right ml-4">
-                      <div className="text-sm font-mono font-semibold">{formatCompact(pos.amount)}</div>
+                      <div className="text-sm font-mono font-semibold">{formatShares(pos.amount)}</div>
                       <div className="text-[10px] text-muted-foreground">shares</div>
                     </div>
                   </Link>

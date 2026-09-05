@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { TrendingUp, TrendingDown, Users, Zap } from "lucide-react";
-import { cn, formatCompact, formatProbability, formatRelativeTime } from "@/lib/utils";
+import { cn, formatShares, formatProbability, formatRelativeTime } from "@/lib/utils";
 import Link from "next/link";
 
 export async function ActivityFeed() {
@@ -70,7 +70,7 @@ export async function ActivityFeed() {
               <div className="flex-1 min-w-0">
                 <p className="text-xs">
                   <span className="font-medium text-primary">{h.wallet_name || `${h.wallet_address?.slice(0, 6)}...`}</span>
-                  <span className="text-muted-foreground"> holds {formatCompact(h.amount)} in </span>
+                  <span className="text-muted-foreground"> holds {formatShares(h.amount)} in</span>
                   <Link href={`/market/${eventSlug}`} className="font-medium hover:text-primary">{h.markets?.question?.slice(0, 40) || "a market"}...</Link>
                 </p>
               </div>

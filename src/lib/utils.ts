@@ -28,6 +28,20 @@ export function formatCompact(value: number): string {
 }
 
 /**
+ * Format a share count with K/M/B suffixes. Holder and activity amounts are
+ * SHARES (each redeems for $1 if the outcome wins), not dollars.
+ */
+export function formatShares(value: number): string {
+  const v = Number(value) || 0;
+  const n =
+    v >= 1_000_000_000 ? `${(v / 1_000_000_000).toFixed(1)}B`
+    : v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M`
+    : v >= 1_000 ? `${(v / 1_000).toFixed(1)}K`
+    : v.toFixed(0);
+  return `${n} shares`;
+}
+
+/**
  * Format a probability (0-1) as a percentage
  */
 export function formatProbability(value: number): string {

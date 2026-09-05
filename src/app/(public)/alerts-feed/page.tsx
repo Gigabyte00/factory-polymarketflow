@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { Bell, TrendingUp, TrendingDown, Users, Zap, ArrowRight } from "lucide-react";
-import { cn, formatCompact, truncateAddress, formatRelativeTime } from "@/lib/utils";
+import { cn, formatShares, truncateAddress, formatRelativeTime } from "@/lib/utils";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { PerpsBanner } from "@/components/perps-banner";
@@ -96,7 +96,7 @@ export default async function PublicAlertsFeedPage() {
                   <Link key={i} href={`/market/${slug}`} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/30 transition-colors group">
                     <Users className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs"><span className="font-semibold text-primary">{name}</span> <span className="text-muted-foreground">holds</span> <span className="font-mono font-semibold">{formatCompact(h.amount)}</span> <span className={cn("font-semibold", side === "YES" ? "text-profit" : "text-loss")}>{side}</span></p>
+                      <p className="text-xs"><span className="font-semibold text-primary">{name}</span> <span className="text-muted-foreground">holds</span> <span className="font-mono font-semibold">{formatShares(h.amount)}</span> <span className={cn("font-semibold", side === "YES" ? "text-profit" : "text-loss")}>{side}</span></p>
                       <p className="text-[10px] text-muted-foreground truncate">{h.markets?.question}</p>
                     </div>
                     <span className="text-[10px] text-muted-foreground">{formatRelativeTime(h.snapshot_at)}</span>

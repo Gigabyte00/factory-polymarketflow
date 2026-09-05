@@ -80,7 +80,10 @@ export default async function Midterms2026Page() {
     .eq("category", "Politics")
     .or("title.ilike.%senate%,title.ilike.%house%,title.ilike.%governor%,title.ilike.%midterm%")
     .order("volume", { ascending: false, nullsFirst: false })
-    .limit(30);
+    .limit(60);
+
+  // Brazil's October general election also has "Governor" / "Senate" markets
+  const NON_US_RACE = /brazil|rio de janeiro|s[ãa]o paulo|roraima|minas gerais|bahia|paran[áa]|pernambuco|cear[áa]|goi[áa]s|amazonas|rio grande|santa catarina|esp[íi]rito santo|maranh[ãa]o|mato grosso|distrito federal|alagoas|sergipe|piau[íi]|tocantins|rond[ôo]nia|amap[áa]|para[íi]ba/i;
 
   const now = new Date();
 
@@ -116,7 +119,9 @@ export default async function Midterms2026Page() {
     .map((slug) => (headlineEvents || []).find((e: any) => e.slug === slug))
     .filter(Boolean) as any[];
 
-  const races = (raceEvents || []).filter((e: any) => !HEADLINE_SLUGS.includes(e.slug));
+  const races = (raceEvents || [])
+    .filter((e: any) => !HEADLINE_SLUGS.includes(e.slug) && !NON_US_RACE.test(e.title || ""))
+    .slice(0, 40);
 
   return (
     <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">

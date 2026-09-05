@@ -10,7 +10,7 @@ function PriceChartWrapper({ tokenId }: { tokenId: string }) {
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { ArrowUpRight, BarChart3, Bell, Clock, Droplets, ExternalLink, TrendingUp, Users } from "lucide-react";
-import { cn, formatCompact, formatProbability } from "@/lib/utils";
+import { cn, formatCompact, formatShares, formatProbability } from "@/lib/utils";
 import type { Metadata } from "next";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -161,7 +161,7 @@ export default async function MarketDetailPage({ params }: Props) {
                       <span className="text-xs text-muted-foreground font-mono w-4">#{i + 1}</span>
                       <span className="text-xs truncate max-w-[120px]">{h.wallet_name || `${h.wallet_address.slice(0, 6)}...${h.wallet_address.slice(-4)}`}</span>
                     </div>
-                    <span className="text-xs font-mono">{formatCompact(h.amount)}</span>
+                    <span className="text-xs font-mono">{formatShares(h.amount)}</span>
                   </div>
                 ))}
               </div>

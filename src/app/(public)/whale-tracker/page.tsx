@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { Users, TrendingUp, Target, Bell, ArrowRight, Zap } from "lucide-react";
-import { formatCompact, truncateAddress, cn } from "@/lib/utils";
+import { formatShares, truncateAddress, cn } from "@/lib/utils";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { FAQSchema } from "@/components/structured-data";
@@ -124,7 +124,7 @@ export default async function WhaleTrackerLandingPage() {
                 <Link key={i} href={`/market/${slug}`} className="flex items-center gap-2 p-2 rounded hover:bg-muted/30 transition-colors group">
                   <Users className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs"><span className="font-semibold text-primary">{name}</span> <span className="text-muted-foreground">holds</span> <span className="font-mono font-semibold">{formatCompact(h.amount)}</span> <span className={side === "YES" ? "text-profit" : "text-loss"}>{side}</span></p>
+                    <p className="text-xs"><span className="font-semibold text-primary">{name}</span> <span className="text-muted-foreground">holds</span> <span className="font-mono font-semibold">{formatShares(h.amount)}</span> <span className={side === "YES" ? "text-profit" : "text-loss"}>{side}</span></p>
                     <p className="text-[10px] text-muted-foreground truncate">{(h.markets as any)?.question}</p>
                   </div>
                 </Link>

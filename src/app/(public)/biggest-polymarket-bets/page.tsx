@@ -112,7 +112,11 @@ export default async function BiggestBetsPage() {
   const moves = (movesRaw || []) as Row[];
   const positions = (positionsRaw || []) as Row[];
   const top = positions[0] ?? null;
-  const topMove = moves[0] ?? null;
+  const longShot = positions.reduce<Row | null>((b, r) => (!b || Number(r.price) < Number(b.price) ? r : b), null);
+  // Detection restarted on 2026-09-05 when coverage moved to today's top markets, so for
+  // about a week every tracked position reads as "new" — don't ship a duplicate table.
+  const overlap = moves.filter((m) => positions.some((p) => p.wallet_address === m.wallet_address && p.market_id === m.market_id)).length;
+  const movesDistinct = moves.length > 0 && overlap / moves.length < 0.8;
   const now = new Date();
 
   const FAQ_ITEMS = [
@@ -178,11 +182,13 @@ export default async function BiggestBetsPage() {
           ) : <p className="text-sm text-muted-foreground">Loading…</p>}
         </div>
         <div className="terminal-card p-5">
-          <h2 className="text-sm font-semibold mb-2">Biggest new bet this week</h2>
-          {topMove ? (
+          <h2 className="text-sm font-semibold mb-2">Longest shot in the top 20</h2>
+          {longShot ? (
             <>
-              <p className="text-3xl font-bold font-mono">{formatCompact(Number(topMove.est_value_usd))}</p>
-              <p className="text-sm text-muted-foreground truncate">{traderName(topMove)} · {topMove.side} · {topMove.question}</p>
+              <p className="text-3xl font-bold font-mono">{(Number(longShot.price) * 100).toFixed(0)}¢</p>
+              <p className="text-sm text-muted-foreground truncate">
+                {traderName(longShot)} · {formatCompact(Number(longShot.est_value_usd))} at risk pays {formatCompact(Number(longShot.payout_if_right))} · {longShot.side} · {longShot.question}
+              </p>
             </>
           ) : <p className="text-sm text-muted-foreground">Loading…</p>}
         </div>
@@ -199,11 +205,22 @@ export default async function BiggestBetsPage() {
       </div>
       <div className="mb-8"><BetsTable rows={positions} whenKey="snapshot_at" /></div>
 
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-lg font-bold flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /> Biggest new bets — last 7 days</h2>
-        <span className="text-[11px] text-muted-foreground">new positions detected · first seen</span>
-      </div>
-      <div className="mb-8"><BetsTable rows={moves} whenKey="detected_at" /></div>
+      {movesDistinct ? (
+        <>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-lg font-bold flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /> Biggest new bets — last 7 days</h2>
+            <span className="text-[11px] text-muted-foreground">new positions detected · first seen</span>
+          </div>
+          <div className="mb-8"><BetsTable rows={moves} whenKey="detected_at" /></div>
+        </>
+      ) : (
+        <div className="terminal-card p-4 mb-8 text-xs text-muted-foreground leading-relaxed">
+          <strong className="text-foreground">Biggest new bets (last 7 days):</strong> new-position detection restarted on
+          September 5, 2026 when we expanded coverage to today&apos;s highest-volume markets, so for now every tracked
+          position counts as &quot;new&quot; and this table would duplicate the one above. It returns as a separate list
+          once a week of fresh history exists.
+        </div>
+      )}
 
       {/* How to read */}
       <div className="terminal-card p-5 mb-8 max-w-3xl">

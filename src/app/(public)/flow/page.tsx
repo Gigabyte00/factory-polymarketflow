@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Activity, TrendingUp, TrendingDown, Users, Zap, Lock, Filter } from "lucide-react";
-import { cn, formatCompact, formatProbability, truncateAddress, formatRelativeTime } from "@/lib/utils";
+import { cn, formatCompact, formatShares, formatProbability, truncateAddress, formatRelativeTime } from "@/lib/utils";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -137,7 +137,7 @@ export default async function FlowPage() {
                   <p className="text-xs">
                     <span className="font-semibold text-primary">{name}</span>
                     <span className="text-muted-foreground"> holds </span>
-                    <span className="font-mono font-semibold">{formatCompact(h.amount)}</span>
+                    <span className="font-mono font-semibold">{formatShares(h.amount)}</span>
                     <span className={cn("font-semibold ml-1", side === "YES" ? "text-profit" : "text-loss")}>{side}</span>
                   </p>
                   <p className="text-[10px] text-muted-foreground truncate group-hover:text-foreground">{h.markets?.question}</p>

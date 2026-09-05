@@ -317,7 +317,7 @@ export default async function FedRateCutOddsPage() {
           <div className="space-y-3">
             {cutBy.map((r) => (
               <div key={r.month} className="grid grid-cols-[110px_1fr_64px_90px] items-center gap-3 text-sm">
-                <span className="font-medium">{r.month} {fmtDate(r.date!)}</span>
+                <span className="font-medium">{fmtDate(r.date!)} meeting</span>
                 <Bar pct={r.pct!} />
                 <span className="font-mono font-semibold text-right">{r.pct!.toFixed(0)}%</span>
                 <span className="text-right"><Change v={r.d7} suffix="7d" /></span>
