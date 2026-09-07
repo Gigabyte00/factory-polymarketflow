@@ -131,7 +131,7 @@ export default async function RootLayout({
           <Sidebar />
           <main className="flex-1 overflow-auto" role="main">{children}</main>
         </div>
-        <Footer />
+        <Footer showPerps={perpsLive} />
 
         <BackToTop />
 

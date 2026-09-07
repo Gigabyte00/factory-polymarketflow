@@ -13,6 +13,7 @@ import { CalendarDays, Percent, TrendingUp } from "lucide-react";
 import { cn, formatCompact } from "@/lib/utils";
 import { BreadcrumbSchema, FAQSchema } from "@/components/structured-data";
 import { DataPagesNav } from "@/components/data-pages-nav";
+import { PerpsCta } from "@/components/perps-cta";
 
 export const revalidate = 900; // 15 min
 
@@ -371,6 +372,8 @@ export default async function FedRateCutOddsPage() {
         <Link href={`/market/${SLUGS.hike}`} className="terminal-card px-4 py-3 hover:border-primary/40 transition-colors">Rate-hike market →</Link>
         <Link href="/predictions/economics" className="terminal-card px-4 py-3 hover:border-primary/40 transition-colors">All economics markets →</Link>
       </div>
+
+      <PerpsCta context="Rate expectations move gold, indices and crypto. Polymarket Perps let you trade those moves directly, long or short." />
 
       {/* Email capture */}
       <div className="terminal-card p-5 mb-8 max-w-xl mx-auto text-center">

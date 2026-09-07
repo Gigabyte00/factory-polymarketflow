@@ -3,6 +3,7 @@ import { cn, formatCompact, truncateAddress } from "@/lib/utils";
 import { Trophy, TrendingUp, BarChart3 } from "lucide-react";
 import Image from "next/image";
 import type { Metadata } from "next";
+import { PerpsCta } from "@/components/perps-cta";
 
 export const revalidate = 600; // ISR: revalidate every 10 minutes
 
@@ -85,6 +86,8 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
           </tbody>
         </table>
       </div>
+
+      <PerpsCta className="mt-6 mb-0" context="Top traders by volume and PnL. Polymarket Perps adds leveraged long/short exposure on indices, commodities, crypto and equities to the same account." />
     </div>
   );
 }

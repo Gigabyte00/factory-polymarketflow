@@ -14,6 +14,7 @@ import type { Metadata } from "next";
 import { ActivityFeed } from "@/components/feed/activity-feed";
 import { SentimentGauge } from "@/components/feed/sentiment-gauge";
 import { getHeroMarkets } from "@/components/layout/live-ticker";
+import { isPerpsLive } from "@/lib/flags";
 
 export const metadata: Metadata = {
   title: { absolute: "PolymarketFlow — Live Polymarket Analytics, Whale Tracker & Perps Data" },
@@ -32,7 +33,8 @@ function ActivityFeedWrapper() {
 }
 
 export default async function HomePage() {
-  const heroMarkets = await getHeroMarkets();
+  const [heroMarkets, perpsLive] = await Promise.all([getHeroMarkets(), isPerpsLive()]);
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="grid-bg">
@@ -227,7 +229,13 @@ export default async function HomePage() {
             <Link href="/predictions/crypto" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Crypto</span><p className="text-[10px] text-muted-foreground mt-0.5">Crypto predictions</p></Link>
             <Link href="/predictions/sports" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Sports</span><p className="text-[10px] text-muted-foreground mt-0.5">Sports predictions</p></Link>
             <Link href="/blog/what-is-polymarket" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">What is Polymarket?</span><p className="text-[10px] text-muted-foreground mt-0.5">Complete guide</p></Link>
-            <Link href="/daily/2026-03-16" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Today&apos;s Odds</span><p className="text-[10px] text-muted-foreground mt-0.5">Daily snapshot</p></Link>
+            <Link href={`/daily/${todayStr}`} className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Today&apos;s Odds</span><p className="text-[10px] text-muted-foreground mt-0.5">Daily snapshot</p></Link>
+            <Link href="/odds" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Live Odds Trackers</span><p className="text-[10px] text-muted-foreground mt-0.5">Evergreen odds pages</p></Link>
+            <Link href="/odds/2026-midterms" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">2026 Midterm Odds</span><p className="text-[10px] text-muted-foreground mt-0.5">House, Senate, every race</p></Link>
+            <Link href="/odds/fed-rate-cut" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Fed Rate Cut Odds</span><p className="text-[10px] text-muted-foreground mt-0.5">Next FOMC, cuts in 2026</p></Link>
+            <Link href="/biggest-polymarket-bets" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Biggest Bets</span><p className="text-[10px] text-muted-foreground mt-0.5">Largest whale positions</p></Link>
+            <Link href="/calendar" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Resolution Calendar</span><p className="text-[10px] text-muted-foreground mt-0.5">What resolves next</p></Link>
+            {perpsLive && <Link href="/perps" className="terminal-card p-3 hover:border-primary/30 transition-colors"><span className="text-primary font-medium">Polymarket Perps</span><p className="text-[10px] text-muted-foreground mt-0.5">Leverage, fees, calculator</p></Link>}
           </div>
         </div>
       </section>

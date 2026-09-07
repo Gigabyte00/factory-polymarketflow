@@ -1,7 +1,7 @@
 import { Activity } from "lucide-react";
 import Link from "next/link";
 
-export function Footer() {
+export function Footer({ showPerps = false }: { showPerps?: boolean }) {
   return (
     <footer className="border-t border-border bg-card/30 mt-auto">
       <div className="max-w-screen-2xl mx-auto px-4 py-8">
@@ -26,6 +26,7 @@ export function Footer() {
             <h4 className="text-sm font-semibold mb-3">Product</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link href="/markets" className="hover:text-foreground transition-colors">Markets</Link></li>
+              {showPerps && <li><Link href="/perps" className="hover:text-foreground transition-colors">Polymarket Perps</Link></li>}
               <li><Link href="/screener" className="hover:text-foreground transition-colors">Screener</Link></li>
               <li><Link href="/movers" className="hover:text-foreground transition-colors">Movers</Link></li>
               <li><Link href="/leaderboard" className="hover:text-foreground transition-colors">Leaderboard</Link></li>
@@ -44,6 +45,7 @@ export function Footer() {
               <li><Link href="/predictions/crypto" className="hover:text-foreground transition-colors">Crypto</Link></li>
               <li><Link href="/predictions/sports" className="hover:text-foreground transition-colors">Sports</Link></li>
               <li><Link href="/predictions/economics" className="hover:text-foreground transition-colors">Economics</Link></li>
+              <li><Link href="/odds" className="hover:text-foreground transition-colors">Live Odds Trackers</Link></li>
               <li><Link href="/odds/2026-midterms" className="hover:text-foreground transition-colors">Midterm Odds</Link></li>
               <li><Link href="/odds/fed-rate-cut" className="hover:text-foreground transition-colors">Fed Rate Odds</Link></li>
               <li><Link href="/biggest-polymarket-bets" className="hover:text-foreground transition-colors">Biggest Bets</Link></li>
@@ -61,6 +63,7 @@ export function Footer() {
               <li><Link href="/blog/what-is-polymarket" className="hover:text-foreground transition-colors">What is Polymarket?</Link></li>
               <li><Link href="/blog/whale-tracking-guide" className="hover:text-foreground transition-colors">Whale Tracking Guide</Link></li>
               <li><Link href="/about" className="hover:text-foreground transition-colors">About</Link></li>
+              <li><Link href="/affiliate-disclosure" className="hover:text-foreground transition-colors">Affiliate Disclosure</Link></li>
               <li><Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link></li>
               <li><Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link></li>
             </ul>

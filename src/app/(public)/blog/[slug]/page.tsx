@@ -76,7 +76,10 @@ export default async function BlogArticlePage({ params }: Props) {
     .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold mt-8 mb-3">$1</h2>')
     .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-6 mb-2">$1</h3>')
     .replace(/\*\*(.*?)\*\*/g, '<strong class="text-foreground">$1</strong>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary hover:underline">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m: string, text: string, href: string) =>
+      href.startsWith("/go/")
+        ? `<a href="${href}" target="_blank" rel="sponsored nofollow noopener" class="text-primary hover:underline">${text}</a>`
+        : `<a href="${href}" class="text-primary hover:underline">${text}</a>`)
     .replace(/^- (.*$)/gm, '<li class="ml-4 list-disc text-muted-foreground">$1</li>')
     .replace(/^\d+\. (.*$)/gm, '<li class="ml-4 list-decimal text-muted-foreground">$1</li>')
     .replace(/\n\n/g, '</p><p class="text-sm text-muted-foreground leading-relaxed mb-4">');

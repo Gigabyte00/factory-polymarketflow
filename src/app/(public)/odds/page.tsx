@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Landmark } from "lucide-react";
 import { DATA_PAGES } from "@/components/data-pages-nav";
+import { PerpsCta } from "@/components/perps-cta";
 import { BreadcrumbSchema } from "@/components/structured-data";
 
 export const metadata: Metadata = {
@@ -49,6 +50,8 @@ export default function OddsIndexPage() {
           );
         })}
       </div>
+
+      <PerpsCta context="The same catalysts behind these odds — rates, elections, crypto — also move Polymarket's perpetual markets, where you can go long or short with leverage." />
 
       <div className="grid sm:grid-cols-3 gap-3 text-sm mb-8">
         <Link href="/predictions/politics" className="terminal-card p-4 hover:border-primary/40 transition-colors">All politics markets →</Link>

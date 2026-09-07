@@ -13,6 +13,7 @@ import { Landmark, TrendingUp } from "lucide-react";
 import { cn, formatCompact } from "@/lib/utils";
 import { BreadcrumbSchema, FAQSchema } from "@/components/structured-data";
 import { DataPagesNav } from "@/components/data-pages-nav";
+import { PerpsCta } from "@/components/perps-cta";
 
 export const revalidate = 900; // 15 min
 
@@ -212,6 +213,8 @@ export default async function Midterms2026Page() {
           </tbody>
         </table>
       </div>
+
+      <PerpsCta context="Trade the macro and equity moves that follow election odds — indices, commodities and crypto perps, long or short." />
 
       {/* Email capture */}
       <div className="terminal-card p-5 mb-8 max-w-xl mx-auto text-center">

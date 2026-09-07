@@ -4,6 +4,7 @@ import { formatShares, truncateAddress, cn } from "@/lib/utils";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { FAQSchema } from "@/components/structured-data";
+import { PerpsCta } from "@/components/perps-cta";
 
 export const revalidate = 600; // ISR: revalidate every 10 minutes
 
@@ -133,6 +134,8 @@ export default async function WhaleTrackerLandingPage() {
           </div>
         </div>
       </div>
+
+      <PerpsCta context="Smart money doesn't only bet on outcomes. Polymarket Perps lets you trade the underlying — indices, commodities, crypto, equities — long or short with leverage." />
 
       {/* Features */}
       <div className="terminal-card p-8 text-center mb-10">

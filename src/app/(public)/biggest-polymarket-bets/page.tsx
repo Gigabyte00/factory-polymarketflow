@@ -14,6 +14,7 @@ import { Trophy, TrendingUp, Users } from "lucide-react";
 import { cn, formatCompact, formatRelativeTime, truncateAddress } from "@/lib/utils";
 import { BreadcrumbSchema, FAQSchema } from "@/components/structured-data";
 import { DataPagesNav } from "@/components/data-pages-nav";
+import { PerpsCta } from "@/components/perps-cta";
 
 export const revalidate = 900; // 15 min
 
@@ -232,6 +233,8 @@ export default async function BiggestBetsPage() {
           <li><strong className="text-foreground">Coverage:</strong> the highest-volume Polymarket markets, whose top holders we snapshot hourly. Smaller markets are not included. &quot;SMS&quot; is our Smart Money Score for the wallet.</li>
         </ul>
       </div>
+
+      <PerpsCta context="The biggest bettors size positions in the hundreds of thousands. Polymarket Perps is where that capital trades indices, commodities, crypto and equities with leverage." />
 
       <div className="grid sm:grid-cols-3 gap-3 text-sm mb-8">
         <Link href="/whale-tracker" className="terminal-card p-4 hover:border-primary/40 transition-colors">Whale tracker + Smart Money Scores →</Link>

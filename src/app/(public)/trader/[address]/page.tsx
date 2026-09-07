@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Users, TrendingUp, BarChart3, Trophy, ExternalLink, Calendar } from "lucide-react";
 import { cn, formatCompact, formatShares, truncateAddress, formatProbability } from "@/lib/utils";
 import { BreadcrumbSchema } from "@/components/structured-data";
+import { PerpsCta } from "@/components/perps-cta";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -136,6 +137,8 @@ export default async function TraderProfilePage({ params }: Props) {
               <p className="text-sm text-muted-foreground text-center py-8">No position data available</p>
             )}
           </div>
+
+          <PerpsCta className="mb-0" context="Follow this trader's markets — or trade the underlying assets directly with leverage on Polymarket Perps." />
         </div>
 
         {/* Sidebar */}
