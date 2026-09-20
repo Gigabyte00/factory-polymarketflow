@@ -84,6 +84,9 @@ export const metadata: Metadata = {
   },
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    // Bing Webmaster ownership via the meta-tag method, not the DNS CNAME: Namecheap's setHosts
+    // is a full replace of the apex zone. Per-USER AuthenticationCode, identical fleet-wide.
+    other: { 'msvalidate.01': 'ADC044B777B9441467FAA1E2BA7BDCAE' },
   },
 };
 
