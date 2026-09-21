@@ -67,14 +67,24 @@ function publicDb() {
   );
 }
 
+// Outage hardening (2026-09-20, Block 12 §9): the fleet's PostgREST saturations (09-16, 09-20) make
+// requests HANG rather than fail — the catch below never fires and the redirect hangs with it. Bound
+// the lookup; a timeout returns null so FALLBACK_LINKS (polymarket, polymarket-perps) serve the click.
+const LOOKUP_BUDGET_MS = 2500;
+
 async function lookupLink(slug: string): Promise<LinkRow | null> {
   try {
     if (!envOk()) return null;
-    const { data, error } = await pmflowDb()
+    const q = pmflowDb()
       .from("outbound_links")
       .select("destination, append_path, active, offer_id")
       .eq("slug", slug)
       .single();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const { data, error } = await Promise.race([
+      q as unknown as Promise<{ data: unknown; error: { code?: string; message: string } | null }>,
+      new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new Error(`db-timeout after ${LOOKUP_BUDGET_MS}ms`)), LOOKUP_BUDGET_MS); }),
+    ]).finally(() => clearTimeout(timer));
     if (error) {
       // Loud: a failed lookup means the UNTRACKED fallback destination is about to be used.
       if (error.code !== "PGRST116") console.error(`[go] outbound_links lookup failed for "${slug}":`, error.message);
