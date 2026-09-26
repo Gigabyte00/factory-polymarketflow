@@ -2,6 +2,8 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 
+import pmflowMap from "@/generated/pmflow-map.json";
+
 /**
  * GET /go/<slug> — outbound link redirect (affiliate-swappable) + click log.
  *
@@ -16,8 +18,9 @@ import { createHash } from "node:crypto";
  * The suffix is sanitized to a plain relative path — no scheme/host/.. — so
  * this can't be abused as an open redirect.
  *
- * Fail-safe order: DB row -> FALLBACK_LINKS -> site homepage. A row with
- * active=false is a kill switch (redirects to the homepage).
+ * Fail-safe order: DB row -> (only if the DB is UNAVAILABLE) build-time snapshot -> site homepage.
+ * A row with active=false is a kill switch (redirects to the homepage). A genuine miss goes
+ * straight to the homepage — the snapshot is for outages, not for resurrecting deleted rows.
  *
  * MEASUREMENT: every tracked redirect (row has offer_id) writes one row to the
  * fleet table public.offer_clicks AFTER the 302 has been sent (`after()`), so
@@ -35,10 +38,32 @@ export const dynamic = "force-dynamic";
 /** public.sites row for polymarketflow in the fleet DB (offer_clicks.site_id). */
 const SITE_ID = "412d27f3-f75b-4fc3-a415-929217ef1f66";
 
-const FALLBACK_LINKS: Record<string, { destination: string; appendPath: boolean }> = {
-  polymarket: { destination: "https://polymarket.com", appendPath: true },
-  "polymarket-perps": { destination: "https://polymarket.com/perps", appendPath: false },
-};
+/**
+ * Build-time snapshot of pmflow.outbound_links (scripts/build_pmflow_map.mjs, npm `prebuild`).
+ * Consulted ONLY when the database is unavailable — never on a genuine miss.
+ *
+ * This replaced a hand-maintained FALLBACK_LINKS table that had silently drifted. The monetized
+ * destinations went live 2026-09-03 (migrations/README.md), but the table — last written in the
+ * 2026-09-20 outage-hardening commit itself — still held the pre-launch URLs. So every outage sent
+ * 100% of traffic to a bare polymarket.com with no ?via= referral: the redirect worked and earned
+ * nothing. A snapshot rebuilt from the database on every deploy cannot drift; a hand-maintained
+ * table IS the drift mechanism.
+ *
+ * ⚠ The referral lives in the destination's QUERY STRING (…?via=merchant-dash), which is what makes
+ * appendPath safe: assigning URL.pathname leaves `search` untouched, so ?to=event/x yields
+ * https://polymarket.com/event/x?via=merchant-dash. If the referral is ever moved into the PATH,
+ * appendPath will clobber it.
+ */
+interface SnapLink {
+  d: string;
+  p: boolean;
+  o: string | null;
+}
+interface PmflowMap {
+  meta: { built_at: string | null; count: number; empty: boolean };
+  links: Record<string, SnapLink>;
+}
+const SNAPSHOT = pmflowMap as unknown as PmflowMap;
 
 interface LinkRow {
   destination: string;
@@ -69,12 +94,24 @@ function publicDb() {
 
 // Outage hardening (2026-09-20, Block 12 §9): the fleet's PostgREST saturations (09-16, 09-20) make
 // requests HANG rather than fail — the catch below never fires and the redirect hangs with it. Bound
-// the lookup; a timeout returns null so FALLBACK_LINKS (polymarket, polymarket-perps) serve the click.
+// the lookup so a hung database degrades to the snapshot instead of holding the connection open.
 const LOOKUP_BUDGET_MS = 2500;
 
-async function lookupLink(slug: string): Promise<LinkRow | null> {
+/**
+ * Why this is a union and not `LinkRow | null` (2026-09-26): a bare `null` meant FOUR different
+ * things — missing env, query error, timeout, and a genuine "no such row" — so the caller could not
+ * tell "the database is down" from "that slug does not exist" and had to treat them identically.
+ * Information destroyed at this boundary cannot be recovered downstream, which is precisely what
+ * made a correct fallback inexpressible. Only `unavailable` may consult the snapshot.
+ */
+type Lookup =
+  | { kind: "row"; row: LinkRow }
+  | { kind: "miss" }
+  | { kind: "unavailable"; reason: string };
+
+async function lookupLink(slug: string): Promise<Lookup> {
   try {
-    if (!envOk()) return null;
+    if (!envOk()) return { kind: "unavailable", reason: "no-env" };
     const q = pmflowDb()
       .from("outbound_links")
       .select("destination, append_path, active, offer_id")
@@ -86,14 +123,16 @@ async function lookupLink(slug: string): Promise<LinkRow | null> {
       new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new Error(`db-timeout after ${LOOKUP_BUDGET_MS}ms`)), LOOKUP_BUDGET_MS); }),
     ]).finally(() => clearTimeout(timer));
     if (error) {
-      // Loud: a failed lookup means the UNTRACKED fallback destination is about to be used.
-      if (error.code !== "PGRST116") console.error(`[go] outbound_links lookup failed for "${slug}":`, error.message);
-      return null;
+      // PGRST116 is .single() finding zero rows — the database ANSWERED, the slug simply is not there.
+      if (error.code === "PGRST116") return { kind: "miss" };
+      console.error(`[go] outbound_links lookup failed for "${slug}":`, error.message);
+      return { kind: "unavailable", reason: error.message };
     }
-    return (data as LinkRow) ?? null;
+    return data ? { kind: "row", row: data as LinkRow } : { kind: "miss" };
   } catch (e) {
-    console.error(`[go] outbound_links lookup threw for "${slug}":`, (e as Error).message);
-    return null;
+    const reason = (e as Error).message;
+    console.error(`[go] outbound_links lookup threw for "${slug}":`, reason);
+    return { kind: "unavailable", reason };
   }
 }
 
@@ -159,23 +198,39 @@ export async function GET(
   const { slug } = await params;
   const homeUrl = new URL("/", request.url);
 
-  const row = await lookupLink(slug);
+  const look = await lookupLink(slug);
 
-  // Kill switch: row exists but was deactivated.
-  if (row && row.active === false) {
+  // Kill switch: the row exists and was deactivated. Reachable only when the database ANSWERED, so
+  // it always wins over the snapshot — a link killed before the last build is absent from the
+  // snapshot anyway (the generator bakes active rows only).
+  if (look.kind === "row" && look.row.active === false) {
     return redirect(homeUrl);
   }
 
-  const fallback = FALLBACK_LINKS[slug];
-  const destination = row?.destination || fallback?.destination;
+  let destination: string | undefined;
+  let appendPath = false;
+  let offerId: string | null = null;
+
+  if (look.kind === "row") {
+    destination = look.row.destination;
+    appendPath = look.row.append_path === true;
+    offerId = look.row.offer_id;
+  } else if (look.kind === "unavailable") {
+    // Database unavailable — answer from the build-time snapshot rather than bouncing to the
+    // homepage. A genuine `miss` deliberately does NOT land here: a row that was deleted should
+    // stop redirecting, not keep working until the next deploy.
+    const snap = SNAPSHOT.links[slug];
+    if (snap) {
+      destination = snap.d;
+      appendPath = snap.p;
+      offerId = snap.o;
+    }
+    console.warn(`[go] db-fallback slug=${slug} kind=${snap ? "redirect" : "unavailable"} reason=${look.reason}`);
+  }
+
   if (!destination) {
     return redirect(homeUrl);
   }
-  if (!row && fallback) {
-    console.error(`[go] no outbound_links row for "${slug}" — serving UNTRACKED fallback ${fallback.destination}`);
-  }
-
-  const appendPath = row ? row.append_path === true : fallback?.appendPath === true;
 
   let target: URL;
   try {
@@ -192,8 +247,11 @@ export async function GET(
     }
   }
 
-  if (row?.offer_id && request.method !== "HEAD" && envOk()) {
-    logClick(request, row.offer_id);
+  // Also attempted on the snapshot path — best-effort only: during a true outage this insert fails
+  // too (it is fire-and-forget inside after(), so it can never slow or break the redirect). The win
+  // from the snapshot is destination coverage, not measurement.
+  if (offerId && request.method !== "HEAD" && envOk()) {
+    logClick(request, offerId);
   }
 
   return redirect(target);
