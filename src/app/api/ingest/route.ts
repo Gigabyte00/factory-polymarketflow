@@ -94,7 +94,7 @@ export async function POST(request: Request) {
   // A sync_log row still "running" and younger than 12 min means a run is in flight → skip this tick.
   {
     const cutoff = new Date(Date.now() - 12 * 60 * 1000).toISOString();
-    const { data: inflight } = await db.from("sync_log").select("id, started_at").eq("status", "running").gt("started_at", cutoff).limit(1);
+    const { data: inflight } = await pmflow.from("sync_log").select("id, started_at").eq("status", "running").gt("started_at", cutoff).limit(1);
     if (inflight && inflight.length) {
       return NextResponse.json({ skipped: true, reason: "sync already running", since: inflight[0].started_at }, { status: 202 });
     }
