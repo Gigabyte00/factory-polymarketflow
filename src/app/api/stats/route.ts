@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   const tables = ["events", "markets", "price_history", "top_holders", "whale_wallets", "leaderboard", "users", "alert_rules", "sync_log"];
   const counts: Record<string, number> = {};
   for (const table of tables) {
-    const { count } = await db.from(table).select("*", { count: "exact", head: true });
+    const { count } = await db.from(table).select("*", { count: "planned", head: true });
     counts[table] = count || 0;
   }
 
@@ -77,13 +77,13 @@ export async function POST(request: Request) {
   const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
   const { count: pricesLastHour } = await db
     .from("price_history")
-    .select("*", { count: "exact", head: true })
+    .select("*", { count: "planned", head: true })
     .gte("timestamp", oneHourAgo);
 
   // 6. New whales detected (last hour)
   const { count: newWhales } = await db
     .from("whale_wallets")
-    .select("*", { count: "exact", head: true })
+    .select("*", { count: "planned", head: true })
     .gte("first_seen_at", oneHourAgo);
 
   // 7. Build Slack message

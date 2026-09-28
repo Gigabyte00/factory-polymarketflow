@@ -95,5 +95,5 @@ async function _getHeroMarkets(): Promise<{ label: string; price: string; change
   }
 }
 
-export const getTickerData = unstable_cache(_getTickerData, ["ticker-data"], { revalidate: 120 });
-export const getHeroMarkets = unstable_cache(_getHeroMarkets, ["hero-markets"], { revalidate: 120 });
+export const getTickerData = unstable_cache(_getTickerData, ["ticker-data"], { revalidate: 300 });
+export const getHeroMarkets = unstable_cache(_getHeroMarkets, ["hero-markets"], { revalidate: 300 });

@@ -314,9 +314,9 @@ export async function getPlatformStats() {
   const db = getPmflowClient();
 
   const [eventsRes, marketsRes, whalesRes] = await Promise.all([
-    db.from("events").select("id", { count: "exact", head: true }).eq("active", true),
+    db.from("events").select("id", { count: "planned", head: true }).eq("active", true),
     db.from("events").select("volume_24h").eq("active", true),
-    db.from("whale_wallets").select("wallet_address", { count: "exact", head: true }),
+    db.from("whale_wallets").select("wallet_address", { count: "planned", head: true }),
   ]);
 
   const totalVolume24h = (marketsRes.data || []).reduce((sum: number, e: any) => sum + (e.volume_24h || 0), 0);

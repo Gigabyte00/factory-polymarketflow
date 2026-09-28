@@ -25,9 +25,9 @@ export default async function ScorecardPage() {
     .limit(20);
 
   // Platform stats
-  const { count: totalWhales } = await db.from("whale_wallets").select("wallet_address", { count: "exact", head: true }).gt("smart_money_score", 0);
-  const { count: totalMarkets } = await db.from("events").select("id", { count: "exact", head: true }).eq("active", true);
-  const { count: pricePoints } = await db.from("price_history").select("id", { count: "exact", head: true });
+  const { count: totalWhales } = await db.from("whale_wallets").select("wallet_address", { count: "planned", head: true }).gt("smart_money_score", 0);
+  const { count: totalMarkets } = await db.from("events").select("id", { count: "planned", head: true }).eq("active", true);
+  const { count: pricePoints } = await db.from("price_history").select("id", { count: "planned", head: true });
 
   // Strategy distribution
   const { data: strategyDist } = await db

@@ -44,8 +44,8 @@ export default async function WhaleTrackerLandingPage() {
   }
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { db: { schema: "pmflow" } });
 
-  const { count: totalWhales } = await db.from("whale_wallets").select("wallet_address", { count: "exact", head: true });
-  const { count: scoredWhales } = await db.from("whale_wallets").select("wallet_address", { count: "exact", head: true }).gt("smart_money_score", 0);
+  const { count: totalWhales } = await db.from("whale_wallets").select("wallet_address", { count: "planned", head: true });
+  const { count: scoredWhales } = await db.from("whale_wallets").select("wallet_address", { count: "planned", head: true }).gt("smart_money_score", 0);
 
   const { data: topWhales } = await db
     .from("whale_wallets")

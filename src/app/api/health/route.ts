@@ -21,7 +21,7 @@ export async function GET() {
     );
     const { count, error } = await db
       .from("events")
-      .select("id", { count: "exact", head: true })
+      .select("id", { count: "planned", head: true })
       .eq("active", true);
     
     if (error) throw error;
@@ -87,7 +87,7 @@ export async function GET() {
     const counts: Record<string, number> = {};
     
     for (const table of tables) {
-      const { count } = await db.from(table).select("*", { count: "exact", head: true });
+      const { count } = await db.from(table).select("*", { count: "planned", head: true });
       counts[table] = count || 0;
     }
     

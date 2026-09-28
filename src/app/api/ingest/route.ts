@@ -90,6 +90,15 @@ export async function POST(request: Request) {
   const syncStarted = new Date();
 
   // Create sync log entry
+  // 2026-09-28 C0 overlap guard: on a slow database one 120 s run can outlive the 15-min cron tick and stack.
+  // A sync_log row still "running" and younger than 12 min means a run is in flight → skip this tick.
+  {
+    const cutoff = new Date(Date.now() - 12 * 60 * 1000).toISOString();
+    const { data: inflight } = await db.from("sync_log").select("id, started_at").eq("status", "running").gt("started_at", cutoff).limit(1);
+    if (inflight && inflight.length) {
+      return NextResponse.json({ skipped: true, reason: "sync already running", since: inflight[0].started_at }, { status: 202 });
+    }
+  }
   const { data: syncLog } = await pmflow
     .from("sync_log")
     .insert({

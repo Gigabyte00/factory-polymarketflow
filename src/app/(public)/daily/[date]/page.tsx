@@ -63,7 +63,7 @@ export default async function DailySnapshotPage({ params }: Props) {
     .limit(10);
 
   // Stats
-  const { count: activeEvents } = await db.from("events").select("id", { count: "exact", head: true }).eq("active", true);
+  const { count: activeEvents } = await db.from("events").select("id", { count: "planned", head: true }).eq("active", true);
 
   return (
     <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
